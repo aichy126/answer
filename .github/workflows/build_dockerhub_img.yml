@@ -32,7 +32,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v3
       with:
-        images: answerdev/answer
+        images: aichy66/answer
         tags: |
               type=raw,value=latest
               # branch event
