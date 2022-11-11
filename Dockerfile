@@ -1,4 +1,4 @@
-FROM node:16 AS node-builder
+FROM node:19-alpine AS node-builder
 
 LABEL maintainer="mingcheng<mc@sf.com>"
 
