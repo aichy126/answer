@@ -35,8 +35,10 @@ clean:
 	@rm -f $(BIN)
 
 install-ui-packages:
+	@corepack enable
+	@corepack prepare pnpm@v7.12.2 --activate
 
 ui:
-	@cd ui && yarn install && yarn build && cd -
+	@cd ui && pnpm install && pnpm build && cd -
 
 all: clean build
