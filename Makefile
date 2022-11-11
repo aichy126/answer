@@ -35,11 +35,9 @@ clean:
 	@rm -f $(BIN)
 
 install-ui-packages:
-	@corepack enable
-	@corepack prepare pnpm@v7.12.2 --activate
+	@echo done
 
 ui:
-	@npm config set registry https://repo.huaweicloud.com/repository/npm/
-	@cd ui && pnpm install && pnpm build && cd -
+	@cd ui && npm install && npm build && cd -
 
 all: clean build
