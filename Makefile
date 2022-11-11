@@ -35,9 +35,8 @@ clean:
 	@rm -f $(BIN)
 
 install-ui-packages:
-	@echo done
 
 ui:
-	@cd ui && npm install && npm build && cd -
+	@cd ui && yarn install && yarn build && cd -
 
 all: clean build
