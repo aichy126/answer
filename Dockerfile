@@ -1,10 +1,9 @@
-FROM node:18.12 AS node-builder
+FROM node:16 AS node-builder
 
 LABEL maintainer="mingcheng<mc@sf.com>"
 
 COPY . /answer
 WORKDIR /answer
-RUN ln -s /usr/bin/node /usr/local/sbin/node
 RUN make install-ui-packages ui && mv ui/build /tmp
 
 # stage2 build the main binary within static resource
