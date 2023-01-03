@@ -45,6 +45,7 @@ func NewDB(debug bool, dataConf *Database) (*xorm.Engine, error) {
 		if err := dir.CreateDirIfNotExist(dbFileDir); err != nil {
 			log.Errorf("create database dir failed: %s", err)
 		}
+		dataConf.MaxOpenConn = 1
 	}
 	engine, err := xorm.NewEngine(dataConf.Driver, dataConf.Connection)
 	if err != nil {
