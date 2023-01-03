@@ -7,10 +7,11 @@ import (
 	"github.com/answerdev/answer/pkg/dir"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/segmentfault/pacman/cache"
 	"github.com/segmentfault/pacman/contrib/cache/memory"
 	"github.com/segmentfault/pacman/log"
+	_ "modernc.org/sqlite"
 	"xorm.io/core"
 	"xorm.io/xorm"
 	ormlog "xorm.io/xorm/log"
@@ -38,6 +39,7 @@ func NewDB(debug bool, dataConf *Database) (*xorm.Engine, error) {
 		dataConf.Driver = string(schemas.MYSQL)
 	}
 	if dataConf.Driver == string(schemas.SQLITE) {
+		dataConf.Driver = "sqlite"
 		dbFileDir := filepath.Dir(dataConf.Connection)
 		log.Debugf("try to create database directory %s", dbFileDir)
 		if err := dir.CreateDirIfNotExist(dbFileDir); err != nil {
