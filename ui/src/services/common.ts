@@ -4,12 +4,13 @@ import useSWR from 'swr';
 import request from '@/utils/request';
 import type * as Type from '@/common/interface';
 
-export const uploadImage = (file) => {
+export const uploadImage = (params: { file: File; type: Type.UploadType }) => {
   const form = new FormData();
-
-  form.append('file', file);
-  return request.post('/answer/api/v1/user/post/file', form);
+  form.append('source', String(params.type));
+  form.append('file', params.file);
+  return request.post('/answer/api/v1/file', form);
 };
+
 export const useQueryQuestionByTitle = (title) => {
   return useSWR<Record<string, any>>(
     title ? `/answer/api/v1/question/similar?title=${title}` : '',
@@ -37,6 +38,9 @@ export const useQueryComments = (params) => {
   if (params.page === 0) {
     params.query_cond = 'vote';
     params.page = 1;
+  } else {
+    // only first page need commentId
+    delete params.comment_id;
   }
   return useSWR<Type.ListResult>(
     `/answer/api/v1/comment/page?${qs.stringify(params, {
@@ -72,7 +76,7 @@ export const useQueryAnswerInfo = (id: string) => {
 };
 
 export const modifyQuestion = (
-  params: Type.QuestionParams & { id: string },
+  params: Type.QuestionParams & { id: string; edit_summary: string },
 ) => {
   return request.put(`/answer/api/v1/question`, params);
 };
@@ -90,6 +94,11 @@ export const login = (params: Type.LoginReqParams) => {
 
 export const register = (params: Type.RegisterReqParams) => {
   return request.post<any>('/answer/api/v1/user/register/email', params);
+};
+
+export const getRegisterCaptcha = () => {
+  const apiUrl = '/answer/api/v1/user/register/captcha';
+  return request.get(apiUrl);
 };
 
 export const logout = () => {
@@ -125,10 +134,6 @@ export const modifyPassword = (params: Type.ModifyPasswordReq) => {
 
 export const modifyUserInfo = (params: Type.ModifyUserReq) => {
   return request.put('/answer/api/v1/user/info', params);
-};
-
-export const uploadAvatar = (params: Type.AvatarUploadReq) => {
-  return request.post('/answer/api/v1/user/avatar/upload', params);
 };
 
 export const resetPassword = (params: Type.PasswordResetReq) => {
@@ -247,4 +252,8 @@ export const changeEmailVerify = (params: { code: string }) => {
 
 export const getAppSettings = () => {
   return request.get<Type.SiteSettings>('/answer/api/v1/siteinfo');
+};
+
+export const reopenQuestion = (params: { question_id: string }) => {
+  return request.put('/answer/api/v1/question/reopen', params);
 };

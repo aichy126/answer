@@ -10,8 +10,6 @@ interface InterfaceType {
 
 const interfaceSetting = create<InterfaceType>((set) => ({
   interface: {
-    logo: '',
-    theme: '',
     language: DEFAULT_LANG,
     time_zone: '',
   },

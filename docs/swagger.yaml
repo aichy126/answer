@@ -1,11 +1,4 @@
 definitions:
-  entity.AdminSetAnswerStatusRequest:
-    properties:
-      answer_id:
-        type: string
-      status:
-        type: string
-    type: object
   handler.RespBody:
     properties:
       code:
@@ -89,6 +82,50 @@ definitions:
         type: integer
       list: {}
     type: object
+  schema.ActObjectInfo:
+    properties:
+      answer_id:
+        type: string
+      display_name:
+        type: string
+      main_tag_slug_name:
+        type: string
+      object_type:
+        type: string
+      question_id:
+        type: string
+      title:
+        type: string
+      username:
+        type: string
+    type: object
+  schema.ActObjectTimeline:
+    properties:
+      activity_id:
+        type: string
+      activity_type:
+        type: string
+      cancelled:
+        type: boolean
+      cancelled_at:
+        type: integer
+      comment:
+        type: string
+      created_at:
+        type: integer
+      id:
+        type: string
+      object_id:
+        type: string
+      object_type:
+        type: string
+      revision_id:
+        type: string
+      user_display_name:
+        type: string
+      username:
+        type: string
+    type: object
   schema.ActionRecordResp:
     properties:
       captcha_id:
@@ -139,11 +176,42 @@ definitions:
     - object_id
     - report_type
     type: object
+  schema.AddUserReq:
+    properties:
+      display_name:
+        maxLength: 30
+        type: string
+      email:
+        maxLength: 500
+        type: string
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
+    required:
+    - display_name
+    - email
+    - password
+    type: object
+  schema.AdminSetAnswerStatusRequest:
+    properties:
+      answer_id:
+        type: string
+      status:
+        type: string
+    type: object
   schema.AdminSetQuestionStatusRequest:
     properties:
       question_id:
         type: string
       status:
+        type: string
+    type: object
+  schema.AnswerAcceptedReq:
+    properties:
+      answer_id:
+        type: string
+      question_id:
         type: string
     type: object
   schema.AnswerAddReq:
@@ -154,29 +222,6 @@ definitions:
       html:
         description: html
         type: string
-      question_id:
-        description: question_id
-        type: string
-    type: object
-  schema.AnswerAdoptedReq:
-    properties:
-      answer_id:
-        type: string
-      question_id:
-        description: question_id
-        type: string
-    type: object
-  schema.AnswerList:
-    properties:
-      order:
-        description: 1 Default 2 time
-        type: string
-      page:
-        description: Query number of pages
-        type: integer
-      page_size:
-        description: Search page size
-        type: integer
       question_id:
         description: question_id
         type: string
@@ -368,12 +413,25 @@ definitions:
         description: if main tag slug name is not empty, this tag is synonymous with
           the main tag
         type: string
+      recommend:
+        type: boolean
+      reserved:
+        type: boolean
       slug_name:
         description: slug name
         type: string
       tag_id:
         description: tag id
         type: string
+    type: object
+  schema.GetObjectTimelineResp:
+    properties:
+      object_info:
+        $ref: '#/definitions/schema.ActObjectInfo'
+      timeline:
+        items:
+          $ref: '#/definitions/schema.ActObjectTimeline'
+        type: array
     type: object
   schema.GetOtherUserInfoByUsernameResp:
     properties:
@@ -524,6 +582,15 @@ definitions:
       user_info:
         $ref: '#/definitions/schema.UserBasicInfo'
     type: object
+  schema.GetRoleResp:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   schema.GetSMTPConfigResp:
     properties:
       encryption:
@@ -542,6 +609,17 @@ definitions:
       smtp_port:
         type: integer
       smtp_username:
+        type: string
+    type: object
+  schema.GetSiteLegalInfoResp:
+    properties:
+      privacy_policy_original_text:
+        type: string
+      privacy_policy_parsed_text:
+        type: string
+      terms_of_service_original_text:
+        type: string
+      terms_of_service_parsed_text:
         type: string
     type: object
   schema.GetTagPageResp:
@@ -570,6 +648,10 @@ definitions:
       question_count:
         description: question amount
         type: integer
+      recommend:
+        type: boolean
+      reserved:
+        type: boolean
       slug_name:
         description: slug_name
         type: string
@@ -585,6 +667,9 @@ definitions:
       created_at:
         description: created time
         type: integer
+      description:
+        description: description text
+        type: string
       display_name:
         description: display name
         type: string
@@ -615,6 +700,10 @@ definitions:
       question_count:
         description: question amount
         type: integer
+      recommend:
+        type: boolean
+      reserved:
+        type: boolean
       slug_name:
         description: slug name
         type: string
@@ -627,19 +716,25 @@ definitions:
     type: object
   schema.GetTagSynonymsResp:
     properties:
-      display_name:
-        description: display name
+      member_actions:
+        description: MemberActions
+        items:
+          $ref: '#/definitions/schema.PermissionMemberAction'
+        type: array
+      synonyms:
+        description: synonyms
+        items:
+          $ref: '#/definitions/schema.TagSynonym'
+        type: array
+    type: object
+  schema.GetUnreviewedRevisionResp:
+    properties:
+      info:
+        $ref: '#/definitions/schema.UnreviewedRevisionInfoInfo'
+      type:
         type: string
-      main_tag_slug_name:
-        description: if main tag slug name is not empty, this tag is synonymous with
-          the main tag
-        type: string
-      slug_name:
-        description: slug name
-        type: string
-      tag_id:
-        description: tag id
-        type: string
+      unreviewed_info:
+        $ref: '#/definitions/schema.GetRevisionResp'
     type: object
   schema.GetUserPageResp:
     properties:
@@ -661,6 +756,12 @@ definitions:
       rank:
         description: rank
         type: integer
+      role_id:
+        description: role id
+        type: integer
+      role_name:
+        description: role name
+        type: string
       status:
         description: user status(normal,suspended,deleted,inactive)
         type: string
@@ -989,6 +1090,11 @@ definitions:
     required:
     - tag_id
     type: object
+  schema.ReopenQuestionReq:
+    properties:
+      question_id:
+        type: string
+    type: object
   schema.ReportHandleReq:
     properties:
       flagged_content:
@@ -1000,6 +1106,18 @@ definitions:
     required:
     - flagged_type
     - id
+    type: object
+  schema.RevisionAuditReq:
+    properties:
+      id:
+        description: object id
+        type: string
+      operation:
+        description: approve or reject
+        type: string
+    required:
+    - id
+    - operation
     type: object
   schema.SearchListResp:
     properties:
@@ -1024,6 +1142,8 @@ definitions:
       excerpt:
         type: string
       id:
+        type: string
+      question_id:
         type: string
       status:
         description: Status
@@ -1050,6 +1170,72 @@ definitions:
         description: object_type
         type: string
     type: object
+  schema.SiteBrandingReq:
+    properties:
+      favicon:
+        maxLength: 512
+        type: string
+      logo:
+        maxLength: 512
+        type: string
+      mobile_logo:
+        maxLength: 512
+        type: string
+      square_icon:
+        maxLength: 512
+        type: string
+    required:
+    - logo
+    - square_icon
+    type: object
+  schema.SiteBrandingResp:
+    properties:
+      favicon:
+        maxLength: 512
+        type: string
+      logo:
+        maxLength: 512
+        type: string
+      mobile_logo:
+        maxLength: 512
+        type: string
+      square_icon:
+        maxLength: 512
+        type: string
+    required:
+    - logo
+    - square_icon
+    type: object
+  schema.SiteCustomCssHTMLReq:
+    properties:
+      custom_css:
+        maxLength: 65536
+        type: string
+      custom_footer:
+        maxLength: 65536
+        type: string
+      custom_head:
+        maxLength: 65536
+        type: string
+      custom_header:
+        maxLength: 65536
+        type: string
+    type: object
+  schema.SiteCustomCssHTMLResp:
+    properties:
+      custom_css:
+        maxLength: 65536
+        type: string
+      custom_footer:
+        maxLength: 65536
+        type: string
+      custom_head:
+        maxLength: 65536
+        type: string
+      custom_header:
+        maxLength: 65536
+        type: string
+    type: object
   schema.SiteGeneralReq:
     properties:
       contact_email:
@@ -1069,9 +1255,7 @@ definitions:
         type: string
     required:
     - contact_email
-    - description
     - name
-    - short_description
     - site_url
     type: object
   schema.SiteGeneralResp:
@@ -1093,20 +1277,29 @@ definitions:
         type: string
     required:
     - contact_email
-    - description
     - name
-    - short_description
     - site_url
+    type: object
+  schema.SiteInfoResp:
+    properties:
+      branding:
+        $ref: '#/definitions/schema.SiteBrandingResp'
+      custom_css_html:
+        $ref: '#/definitions/schema.SiteCustomCssHTMLResp'
+      general:
+        $ref: '#/definitions/schema.SiteGeneralResp'
+      interface:
+        $ref: '#/definitions/schema.SiteInterfaceResp'
+      login:
+        $ref: '#/definitions/schema.SiteLoginResp'
+      site_seo:
+        $ref: '#/definitions/schema.SiteSeoReq'
+      theme:
+        $ref: '#/definitions/schema.SiteThemeResp'
     type: object
   schema.SiteInterfaceReq:
     properties:
       language:
-        maxLength: 128
-        type: string
-      logo:
-        maxLength: 256
-        type: string
-      theme:
         maxLength: 128
         type: string
       time_zone:
@@ -1114,7 +1307,6 @@ definitions:
         type: string
     required:
     - language
-    - theme
     - time_zone
     type: object
   schema.SiteInterfaceResp:
@@ -1122,19 +1314,121 @@ definitions:
       language:
         maxLength: 128
         type: string
-      logo:
-        maxLength: 256
-        type: string
-      theme:
-        maxLength: 128
-        type: string
       time_zone:
         maxLength: 128
         type: string
     required:
     - language
-    - theme
     - time_zone
+    type: object
+  schema.SiteLegalReq:
+    properties:
+      privacy_policy_original_text:
+        type: string
+      privacy_policy_parsed_text:
+        type: string
+      terms_of_service_original_text:
+        type: string
+      terms_of_service_parsed_text:
+        type: string
+    type: object
+  schema.SiteLegalResp:
+    properties:
+      privacy_policy_original_text:
+        type: string
+      privacy_policy_parsed_text:
+        type: string
+      terms_of_service_original_text:
+        type: string
+      terms_of_service_parsed_text:
+        type: string
+    type: object
+  schema.SiteLoginReq:
+    properties:
+      allow_new_registrations:
+        type: boolean
+      login_required:
+        type: boolean
+    type: object
+  schema.SiteLoginResp:
+    properties:
+      allow_new_registrations:
+        type: boolean
+      login_required:
+        type: boolean
+    type: object
+  schema.SiteSeoReq:
+    properties:
+      permalink:
+        maximum: 3
+        minimum: 0
+        type: integer
+      robots:
+        type: string
+    required:
+    - permalink
+    - robots
+    type: object
+  schema.SiteSeoResp:
+    properties:
+      permalink:
+        maximum: 3
+        minimum: 0
+        type: integer
+      robots:
+        type: string
+    required:
+    - permalink
+    - robots
+    type: object
+  schema.SiteThemeReq:
+    properties:
+      theme:
+        maxLength: 255
+        type: string
+      theme_config:
+        additionalProperties: true
+        type: object
+    required:
+    - theme
+    type: object
+  schema.SiteThemeResp:
+    properties:
+      theme:
+        type: string
+      theme_config:
+        additionalProperties: true
+        type: object
+      theme_options:
+        items:
+          $ref: '#/definitions/schema.ThemeOption'
+        type: array
+    type: object
+  schema.SiteWriteReq:
+    properties:
+      recommend_tags:
+        items:
+          type: string
+        type: array
+      required_tag:
+        type: boolean
+      reserved_tags:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.SiteWriteResp:
+    properties:
+      recommend_tags:
+        items:
+          type: string
+        type: array
+      required_tag:
+        type: boolean
+      reserved_tags:
+        items:
+          type: string
+        type: array
     type: object
   schema.TagItem:
     properties:
@@ -1161,7 +1455,49 @@ definitions:
         description: if main tag slug name is not empty, this tag is synonymous with
           the main tag
         type: string
+      recommend:
+        type: boolean
+      reserved:
+        type: boolean
       slug_name:
+        type: string
+    type: object
+  schema.TagSynonym:
+    properties:
+      display_name:
+        description: display name
+        type: string
+      main_tag_slug_name:
+        description: if main tag slug name is not empty, this tag is synonymous with
+          the main tag
+        type: string
+      slug_name:
+        description: slug name
+        type: string
+      tag_id:
+        description: tag id
+        type: string
+    type: object
+  schema.ThemeOption:
+    properties:
+      label:
+        type: string
+      value:
+        type: string
+    type: object
+  schema.UnreviewedRevisionInfoInfo:
+    properties:
+      content:
+        type: string
+      html:
+        type: string
+      object_id:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/schema.TagResp'
+        type: array
+      title:
         type: string
     type: object
   schema.UpdateCommentReq:
@@ -1297,6 +1633,30 @@ definitions:
     required:
     - language
     type: object
+  schema.UpdateUserPasswordReq:
+    properties:
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
+      user_id:
+        type: string
+    required:
+    - password
+    - user_id
+    type: object
+  schema.UpdateUserRoleReq:
+    properties:
+      role_id:
+        description: role id
+        type: integer
+      user_id:
+        description: user id
+        type: string
+    required:
+    - role_id
+    - user_id
+    type: object
   schema.UpdateUserStatusReq:
     properties:
       status:
@@ -1321,6 +1681,9 @@ definitions:
         type: string
       display_name:
         description: display_name
+        type: string
+      id:
+        description: user_id
         type: string
       ip_info:
         description: ip info
@@ -1373,10 +1736,16 @@ definitions:
         type: string
       e_mail:
         description: e_mail
+        maxLength: 500
         type: string
       pass:
         description: password
+        maxLength: 32
+        minLength: 8
         type: string
+    required:
+    - e_mail
+    - pass
     type: object
   schema.UserModifyPassWordRequest:
     properties:
@@ -1397,6 +1766,39 @@ definitions:
       notice_switch:
         type: boolean
     type: object
+  schema.UserRankingResp:
+    properties:
+      staffs:
+        items:
+          $ref: '#/definitions/schema.UserRankingSimpleInfo'
+        type: array
+      users_with_the_most_reputation:
+        items:
+          $ref: '#/definitions/schema.UserRankingSimpleInfo'
+        type: array
+      users_with_the_most_vote:
+        items:
+          $ref: '#/definitions/schema.UserRankingSimpleInfo'
+        type: array
+    type: object
+  schema.UserRankingSimpleInfo:
+    properties:
+      avatar:
+        description: avatar
+        type: string
+      display_name:
+        description: display name
+        type: string
+      rank:
+        description: rank
+        type: integer
+      username:
+        description: username
+        type: string
+      vote_count:
+        description: vote
+        type: integer
+    type: object
   schema.UserRePassWordRequest:
     properties:
       code:
@@ -1413,6 +1815,12 @@ definitions:
     type: object
   schema.UserRegisterReq:
     properties:
+      captcha_code:
+        description: captcha_code
+        type: string
+      captcha_id:
+        description: captcha_id
+        type: string
       e_mail:
         description: email
         maxLength: 500
@@ -1516,7 +1924,7 @@ paths:
             $ref: '#/definitions/handler.RespBody'
       security:
       - ApiKeyAuth: []
-      summary: CmsSearchList
+      summary: AdminSearchAnswerList
       tags:
       - admin
   /answer/admin/api/answer/status:
@@ -1530,7 +1938,7 @@ paths:
         name: data
         required: true
         schema:
-          $ref: '#/definitions/entity.AdminSetAnswerStatusRequest'
+          $ref: '#/definitions/schema.AdminSetAnswerStatusRequest'
       produces:
       - application/json
       responses:
@@ -1608,7 +2016,7 @@ paths:
             $ref: '#/definitions/handler.RespBody'
       security:
       - ApiKeyAuth: []
-      summary: CmsSearchList
+      summary: AdminSearchList
       tags:
       - admin
   /answer/admin/api/question/status:
@@ -1743,6 +2151,26 @@ paths:
       summary: list report page
       tags:
       - admin
+  /answer/admin/api/roles:
+    get:
+      description: get role list
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/schema.GetRoleResp'
+                  type: array
+              type: object
+      summary: get role list
+      tags:
+      - admin
   /answer/admin/api/setting/smtp:
     get:
       description: GetSMTPConfig get smtp config
@@ -1782,6 +2210,88 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: update smtp config
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/branding:
+    get:
+      description: get site interface
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteBrandingResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site interface
+      tags:
+      - admin
+    put:
+      description: update site info branding
+      parameters:
+      - description: branding info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteBrandingReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site info branding
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/custom-css-html:
+    get:
+      description: get site info custom html css config
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteCustomCssHTMLResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site info custom html css config
+      tags:
+      - admin
+    put:
+      description: update site custom css html config
+      parameters:
+      - description: login info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteCustomCssHTMLReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site custom css html config
       tags:
       - admin
   /answer/admin/api/siteinfo/general:
@@ -1866,6 +2376,211 @@ paths:
       summary: update site info interface
       tags:
       - admin
+  /answer/admin/api/siteinfo/legal:
+    get:
+      description: Set the legal information for the site
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteLegalResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Set the legal information for the site
+      tags:
+      - admin
+    put:
+      description: update site legal info
+      parameters:
+      - description: write info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteLegalReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site legal info
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/login:
+    get:
+      description: get site info login config
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteLoginResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site info login config
+      tags:
+      - admin
+    put:
+      description: update site login
+      parameters:
+      - description: login info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteLoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site login
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/seo:
+    get:
+      description: get site seo information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteSeoResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site seo information
+      tags:
+      - admin
+    put:
+      description: update site seo information
+      parameters:
+      - description: seo
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteSeoReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site seo information
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/theme:
+    get:
+      description: get site info theme config
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteThemeResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site info theme config
+      tags:
+      - admin
+    put:
+      description: update site custom css html config
+      parameters:
+      - description: login info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteThemeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site custom css html config
+      tags:
+      - admin
+  /answer/admin/api/siteinfo/write:
+    get:
+      description: get site interface
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.SiteWriteResp'
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get site interface
+      tags:
+      - admin
+    put:
+      description: update site write info
+      parameters:
+      - description: write info
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SiteWriteReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update site write info
+      tags:
+      - admin
   /answer/admin/api/theme/options:
     get:
       description: Get theme options
@@ -1879,6 +2594,78 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get theme options
+      tags:
+      - admin
+  /answer/admin/api/user:
+    post:
+      consumes:
+      - application/json
+      description: add user
+      parameters:
+      - description: user
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AddUserReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: add user
+      tags:
+      - admin
+  /answer/admin/api/user/password:
+    put:
+      consumes:
+      - application/json
+      description: update user password
+      parameters:
+      - description: user
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UpdateUserPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update user password
+      tags:
+      - admin
+  /answer/admin/api/user/role:
+    put:
+      consumes:
+      - application/json
+      description: update user role
+      parameters:
+      - description: user
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UpdateUserRoleReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: update user role
       tags:
       - admin
   /answer/admin/api/user/status:
@@ -1921,6 +2708,10 @@ paths:
         in: query
         name: query
         type: string
+      - description: staff user
+        in: query
+        name: staff
+        type: boolean
       - description: user status
         enum:
         - suspended
@@ -1953,6 +2744,69 @@ paths:
       summary: get user page
       tags:
       - admin
+  /answer/api/v1/activity/timeline:
+    get:
+      description: get object timeline
+      parameters:
+      - description: object id
+        in: query
+        name: object_id
+        type: string
+      - description: tag slug name
+        in: query
+        name: tag_slug_name
+        type: string
+      - description: object type
+        enum:
+        - question
+        - answer
+        - tag
+        in: query
+        name: object_type
+        type: string
+      - description: is show vote
+        in: query
+        name: show_vote
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.GetObjectTimelineResp'
+              type: object
+      summary: get object timeline
+      tags:
+      - Comment
+  /answer/api/v1/activity/timeline/detail:
+    get:
+      description: get object timeline detail
+      parameters:
+      - description: revision id
+        in: query
+        name: revision_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.GetObjectTimelineResp'
+              type: object
+      summary: get object timeline detail
+      tags:
+      - Comment
   /answer/api/v1/answer:
     delete:
       consumes:
@@ -2027,14 +2881,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Adopted
+      description: Accepted
       parameters:
-      - description: AnswerAdoptedReq
+      - description: AnswerAcceptedReq
         in: body
         name: data
         required: true
         schema:
-          $ref: '#/definitions/schema.AnswerAdoptedReq'
+          $ref: '#/definitions/schema.AnswerAcceptedReq'
       produces:
       - application/json
       responses:
@@ -2044,7 +2898,7 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Adopted
+      summary: Accepted
       tags:
       - api-answer
   /answer/api/v1/answer/info:
@@ -2069,18 +2923,32 @@ paths:
       summary: Get Answer
       tags:
       - api-answer
-  /answer/api/v1/answer/list:
+  /answer/api/v1/answer/page:
     get:
       consumes:
       - application/json
       description: AnswerList <br> <b>order</b> (default or updated)
       parameters:
-      - description: AnswerList
-        in: body
-        name: data
+      - description: question_id
+        in: query
+        name: question_id
         required: true
-        schema:
-          $ref: '#/definitions/schema.AnswerList'
+        type: string
+      - description: order
+        in: query
+        name: order
+        required: true
+        type: string
+      - description: page
+        in: query
+        name: page
+        required: true
+        type: string
+      - description: page_size
+        in: query
+        name: page_size
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -2272,6 +3140,41 @@ paths:
       summary: get comment page
       tags:
       - Comment
+  /answer/api/v1/file:
+    post:
+      consumes:
+      - multipart/form-data
+      description: upload file
+      parameters:
+      - description: identify the source of the file upload
+        enum:
+        - post
+        - avatar
+        - branding
+        in: formData
+        name: source
+        required: true
+        type: string
+      - description: file
+        in: formData
+        name: file
+        required: true
+        type: file
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: upload file
+      tags:
+      - Upload
   /answer/api/v1/follow:
     post:
       consumes:
@@ -2852,6 +3755,30 @@ paths:
       summary: SearchQuestionList
       tags:
       - api-question
+  /answer/api/v1/question/reopen:
+    put:
+      consumes:
+      - application/json
+      description: reopen question
+      parameters:
+      - description: question
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.ReopenQuestionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: reopen question
+      tags:
+      - api-question
   /answer/api/v1/question/search:
     post:
       consumes:
@@ -3091,6 +4018,85 @@ paths:
       summary: get revision list
       tags:
       - Revision
+  /answer/api/v1/revisions/audit:
+    put:
+      description: revision audit operation:approve or reject
+      parameters:
+      - description: audit
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/schema.RevisionAuditReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: revision audit
+      tags:
+      - Revision
+  /answer/api/v1/revisions/edit/check:
+    get:
+      consumes:
+      - application/json
+      description: check can update revision
+      parameters:
+      - default: string
+        description: id
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.RespBody'
+      security:
+      - ApiKeyAuth: []
+      summary: check can update revision
+      tags:
+      - Revision
+  /answer/api/v1/revisions/unreviewed:
+    get:
+      description: get unreviewed revision list
+      parameters:
+      - description: page id
+        in: query
+        name: page
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/pager.PageModel'
+                  - properties:
+                      list:
+                        items:
+                          $ref: '#/definitions/schema.GetUnreviewedRevisionResp'
+                        type: array
+                    type: object
+              type: object
+      security:
+      - ApiKeyAuth: []
+      summary: get unreviewed revision list
+      tags:
+      - Revision
   /answer/api/v1/search:
     get:
       description: search object
@@ -3140,9 +4146,36 @@ paths:
             - $ref: '#/definitions/handler.RespBody'
             - properties:
                 data:
-                  $ref: '#/definitions/schema.SiteGeneralResp'
+                  $ref: '#/definitions/schema.SiteInfoResp'
               type: object
       summary: get site info
+      tags:
+      - site
+  /answer/api/v1/siteinfo/legal:
+    get:
+      description: get site legal info
+      parameters:
+      - description: legal information type
+        enum:
+        - tos
+        - privacy
+        in: query
+        name: info_type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.GetSiteLegalInfoResp'
+              type: object
+      summary: get site legal info
       tags:
       - site
   /answer/api/v1/tag:
@@ -3259,9 +4292,7 @@ paths:
             - $ref: '#/definitions/handler.RespBody'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/schema.GetTagSynonymsResp'
-                  type: array
+                  $ref: '#/definitions/schema.GetTagSynonymsResp'
               type: object
       summary: get tag synonyms
       tags:
@@ -3360,32 +4391,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: ActionRecord
-      tags:
-      - User
-  /answer/api/v1/user/avatar/upload:
-    post:
-      consumes:
-      - multipart/form-data
-      description: UserUpdateInfo
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/handler.RespBody'
-            - properties:
-                data:
-                  type: string
-              type: object
-      security:
-      - ApiKeyAuth: []
-      summary: UserUpdateInfo
       tags:
       - User
   /answer/api/v1/user/email:
@@ -3708,17 +4713,13 @@ paths:
       summary: RetrievePassWord
       tags:
       - User
-  /answer/api/v1/user/post/file:
-    post:
+  /answer/api/v1/user/ranking:
+    get:
       consumes:
-      - multipart/form-data
-      description: upload user post file
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
+      - application/json
+      description: get user ranking
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -3727,11 +4728,31 @@ paths:
             - $ref: '#/definitions/handler.RespBody'
             - properties:
                 data:
-                  type: string
+                  $ref: '#/definitions/schema.UserRankingResp'
               type: object
       security:
       - ApiKeyAuth: []
-      summary: upload user post file
+      summary: get user ranking
+      tags:
+      - User
+  /answer/api/v1/user/register/captcha:
+    get:
+      consumes:
+      - application/json
+      description: UserRegisterCaptcha
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.RespBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/schema.GetUserResp'
+              type: object
+      summary: UserRegisterCaptcha
       tags:
       - User
   /answer/api/v1/user/register/email:
@@ -3819,6 +4840,19 @@ paths:
       summary: vote up
       tags:
       - Activity
+  /custom.css:
+    get:
+      description: get site robots information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: get site robots information
+      tags:
+      - site
   /installation/base-info:
     post:
       consumes:
@@ -3974,6 +5008,19 @@ paths:
       summary: UserList
       tags:
       - api-question
+  /robots.txt:
+    get:
+      description: get site robots information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: get site robots information
+      tags:
+      - site
 securityDefinitions:
   ApiKeyAuth:
     in: header

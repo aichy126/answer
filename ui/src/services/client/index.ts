@@ -5,3 +5,7 @@ export * from './question';
 export * from './search';
 export * from './tag';
 export * from './settings';
+export * from './legal';
+export * from './timeline';
+export * from './revision';
+export * from './user';

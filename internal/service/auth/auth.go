@@ -16,9 +16,11 @@ type AuthRepo interface {
 	SetUserStatus(ctx context.Context, userID string, userInfo *entity.UserCacheInfo) (err error)
 	GetUserStatus(ctx context.Context, userID string) (userInfo *entity.UserCacheInfo, err error)
 	RemoveUserStatus(ctx context.Context, userID string) (err error)
-	GetBackyardUserCacheInfo(ctx context.Context, accessToken string) (userInfo *entity.UserCacheInfo, err error)
-	SetBackyardUserCacheInfo(ctx context.Context, accessToken string, userInfo *entity.UserCacheInfo) error
-	RemoveBackyardUserCacheInfo(ctx context.Context, accessToken string) (err error)
+	GetAdminUserCacheInfo(ctx context.Context, accessToken string) (userInfo *entity.UserCacheInfo, err error)
+	SetAdminUserCacheInfo(ctx context.Context, accessToken string, userInfo *entity.UserCacheInfo) error
+	RemoveAdminUserCacheInfo(ctx context.Context, accessToken string) (err error)
+	AddUserTokenMapping(ctx context.Context, userID, accessToken string) (err error)
+	RemoveAllUserTokens(ctx context.Context, userID string)
 }
 
 // AuthService kit service
@@ -40,9 +42,10 @@ func (as *AuthService) GetUserCacheInfo(ctx context.Context, accessToken string)
 	}
 	cacheInfo, _ := as.authRepo.GetUserStatus(ctx, userCacheInfo.UserID)
 	if cacheInfo != nil {
-		log.Infof("user status updated: %+v", cacheInfo)
+		log.Debugf("user status updated: %+v", cacheInfo)
 		userCacheInfo.UserStatus = cacheInfo.UserStatus
 		userCacheInfo.EmailStatus = cacheInfo.EmailStatus
+		userCacheInfo.IsAdmin = cacheInfo.IsAdmin
 		// update current user cache info
 		err := as.authRepo.SetUserCacheInfo(ctx, accessToken, userCacheInfo)
 		if err != nil {
@@ -56,6 +59,10 @@ func (as *AuthService) SetUserCacheInfo(ctx context.Context, userInfo *entity.Us
 	accessToken = token.GenerateToken()
 	err = as.authRepo.SetUserCacheInfo(ctx, accessToken, userInfo)
 	return accessToken, err
+}
+
+func (as *AuthService) SetUserStatus(ctx context.Context, userInfo *entity.UserCacheInfo) (err error) {
+	return as.authRepo.SetUserStatus(ctx, userInfo.UserID, userInfo)
 }
 
 func (as *AuthService) UpdateUserCacheInfo(ctx context.Context, token string, userInfo *entity.UserCacheInfo) (err error) {
@@ -73,17 +80,27 @@ func (as *AuthService) RemoveUserCacheInfo(ctx context.Context, accessToken stri
 	return as.authRepo.RemoveUserCacheInfo(ctx, accessToken)
 }
 
-//cms
-
-func (as *AuthService) GetCmsUserCacheInfo(ctx context.Context, accessToken string) (userInfo *entity.UserCacheInfo, err error) {
-	return as.authRepo.GetBackyardUserCacheInfo(ctx, accessToken)
+// AddUserTokenMapping add user token mapping
+func (as *AuthService) AddUserTokenMapping(ctx context.Context, userID, accessToken string) (err error) {
+	return as.authRepo.AddUserTokenMapping(ctx, userID, accessToken)
 }
 
-func (as *AuthService) SetCmsUserCacheInfo(ctx context.Context, accessToken string, userInfo *entity.UserCacheInfo) (err error) {
-	err = as.authRepo.SetBackyardUserCacheInfo(ctx, accessToken, userInfo)
+// RemoveAllUserTokens Log out all users under this user id
+func (as *AuthService) RemoveAllUserTokens(ctx context.Context, userID string) {
+	as.authRepo.RemoveAllUserTokens(ctx, userID)
+}
+
+//Admin
+
+func (as *AuthService) GetAdminUserCacheInfo(ctx context.Context, accessToken string) (userInfo *entity.UserCacheInfo, err error) {
+	return as.authRepo.GetAdminUserCacheInfo(ctx, accessToken)
+}
+
+func (as *AuthService) SetAdminUserCacheInfo(ctx context.Context, accessToken string, userInfo *entity.UserCacheInfo) (err error) {
+	err = as.authRepo.SetAdminUserCacheInfo(ctx, accessToken, userInfo)
 	return err
 }
 
-func (as *AuthService) RemoveCmsUserCacheInfo(ctx context.Context, accessToken string) (err error) {
-	return as.authRepo.RemoveBackyardUserCacheInfo(ctx, accessToken)
+func (as *AuthService) RemoveAdminUserCacheInfo(ctx context.Context, accessToken string) (err error) {
+	return as.authRepo.RemoveAdminUserCacheInfo(ctx, accessToken)
 }

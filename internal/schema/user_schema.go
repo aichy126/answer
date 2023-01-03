@@ -106,16 +106,16 @@ func FormatAvatarInfo(avatarJson string) string {
 	if avatarJson == "" {
 		return ""
 	}
-	AvatarInfo := &AvatarInfo{}
-	err := json.Unmarshal([]byte(avatarJson), AvatarInfo)
+	avatarInfo := &AvatarInfo{}
+	err := json.Unmarshal([]byte(avatarJson), avatarInfo)
 	if err != nil {
 		return ""
 	}
-	switch AvatarInfo.Type {
+	switch avatarInfo.Type {
 	case "gravatar":
-		return AvatarInfo.Gravatar
+		return avatarInfo.Gravatar
 	case "custom":
-		return AvatarInfo.Custom
+		return avatarInfo.Custom
 	default:
 		return ""
 	}
@@ -219,10 +219,10 @@ var UserStatusShowMsg = map[int]string{
 
 // EmailLogin
 type UserEmailLogin struct {
-	Email       string `json:"e_mail" `       // e_mail
-	Pass        string `json:"pass" `         // password
-	CaptchaID   string `json:"captcha_id" `   // captcha_id
-	CaptchaCode string `json:"captcha_code" ` // captcha_code
+	Email       string `validate:"required,email,gt=0,lte=500" json:"e_mail"` // e_mail
+	Pass        string `validate:"required,gte=8,lte=32" json:"pass"`         // password
+	CaptchaID   string `json:"captcha_id"`                                    // captcha_id
+	CaptchaCode string `json:"captcha_code"`                                  // captcha_code
 }
 
 // UserRegisterReq user register request
@@ -232,18 +232,22 @@ type UserRegisterReq struct {
 	// email
 	Email string `validate:"required,email,gt=0,lte=500" json:"e_mail" `
 	// password
-	Pass string `validate:"required,gte=8,lte=32" json:"pass"`
-	IP   string `json:"-" `
+	Pass        string `validate:"required,gte=8,lte=32" json:"pass"`
+	IP          string `json:"-" `
+	CaptchaID   string `json:"captcha_id"`   // captcha_id
+	CaptchaCode string `json:"captcha_code"` // captcha_code
 }
 
-func (u *UserRegisterReq) Check() (errField *validator.ErrorField, err error) {
+func (u *UserRegisterReq) Check() (errFields []*validator.FormErrorField, err error) {
 	// TODO i18n
 	err = checker.CheckPassword(8, 32, 0, u.Pass)
 	if err != nil {
-		return &validator.ErrorField{
-			Key:   "pass",
-			Value: err.Error(),
-		}, err
+		errField := &validator.FormErrorField{
+			ErrorField: "pass",
+			ErrorMsg:   err.Error(),
+		}
+		errFields = append(errFields, errField)
+		return errFields, err
 	}
 	return nil, nil
 }
@@ -255,14 +259,16 @@ type UserModifyPassWordRequest struct {
 	Pass    string `json:"pass" `     // password
 }
 
-func (u *UserModifyPassWordRequest) Check() (errField *validator.ErrorField, err error) {
+func (u *UserModifyPassWordRequest) Check() (errFields []*validator.FormErrorField, err error) {
 	// TODO i18n
 	err = checker.CheckPassword(8, 32, 0, u.Pass)
 	if err != nil {
-		return &validator.ErrorField{
-			Key:   "pass",
-			Value: err.Error(),
-		}, err
+		errField := &validator.FormErrorField{
+			ErrorField: "pass",
+			ErrorMsg:   err.Error(),
+		}
+		errFields = append(errFields, errField)
+		return errFields, err
 	}
 	return nil, nil
 }
@@ -292,16 +298,17 @@ type AvatarInfo struct {
 	Custom   string `validate:"omitempty,gt=0,lte=200"  json:"custom"`
 }
 
-func (u *UpdateInfoRequest) Check() (errField *validator.ErrorField, err error) {
+func (u *UpdateInfoRequest) Check() (errFields []*validator.FormErrorField, err error) {
 	if len(u.Username) > 0 {
 		re := regexp.MustCompile(`^[a-z0-9._-]{4,30}$`)
 		match := re.MatchString(u.Username)
 		if !match {
-			err = errors.BadRequest(reason.UsernameInvalid)
-			return &validator.ErrorField{
-				Key:   "username",
-				Value: err.Error(),
-			}, err
+			errField := &validator.FormErrorField{
+				ErrorField: "username",
+				ErrorMsg:   err.Error(),
+			}
+			errFields = append(errFields, errField)
+			return errFields, errors.BadRequest(reason.UsernameInvalid)
 		}
 	}
 	return nil, nil
@@ -327,14 +334,16 @@ type UserRePassWordRequest struct {
 	Content string `json:"-"`
 }
 
-func (u *UserRePassWordRequest) Check() (errField *validator.ErrorField, err error) {
+func (u *UserRePassWordRequest) Check() (errFields []*validator.FormErrorField, err error) {
 	// TODO i18n
 	err = checker.CheckPassword(8, 32, 0, u.Pass)
 	if err != nil {
-		return &validator.ErrorField{
-			Key:   "pass",
-			Value: err.Error(),
-		}, err
+		errField := &validator.FormErrorField{
+			ErrorField: "pass",
+			ErrorMsg:   err.Error(),
+		}
+		errFields = append(errFields, errField)
+		return errFields, err
 	}
 	return nil, nil
 }
@@ -361,7 +370,7 @@ type ActionRecordResp struct {
 }
 
 type UserBasicInfo struct {
-	ID          string `json:"-" `           // user_id
+	ID          string `json:"id"`           // user_id
 	Username    string `json:"username" `    // name
 	Rank        int    `json:"rank" `        // rank
 	DisplayName string `json:"display_name"` // display_name
@@ -411,7 +420,23 @@ type UserVerifyEmailSendReq struct {
 	CaptchaCode string `validate:"omitempty,gt=0,lte=500" json:"captcha_code"`
 }
 
-type UserVerifyEmailErrorResponse struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+// UserRankingResp user ranking response
+type UserRankingResp struct {
+	UsersWithTheMostReputation []*UserRankingSimpleInfo `json:"users_with_the_most_reputation"`
+	UsersWithTheMostVote       []*UserRankingSimpleInfo `json:"users_with_the_most_vote"`
+	Staffs                     []*UserRankingSimpleInfo `json:"staffs"`
+}
+
+// UserRankingSimpleInfo user ranking simple info
+type UserRankingSimpleInfo struct {
+	// username
+	Username string `json:"username"`
+	// rank
+	Rank int `json:"rank"`
+	// vote
+	VoteCount int `json:"vote_count"`
+	// display name
+	DisplayName string `json:"display_name"`
+	// avatar
+	Avatar string `json:"avatar"`
 }

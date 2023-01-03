@@ -2,6 +2,7 @@ package question
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 	"unicode"
@@ -16,6 +17,7 @@ import (
 	"github.com/answerdev/answer/internal/schema"
 	questioncommon "github.com/answerdev/answer/internal/service/question_common"
 	"github.com/answerdev/answer/internal/service/unique"
+	"github.com/answerdev/answer/pkg/htmltext"
 
 	"github.com/segmentfault/pacman/errors"
 )
@@ -166,11 +168,41 @@ func (qr *questionRepo) GetQuestionList(ctx context.Context, question *entity.Qu
 func (qr *questionRepo) GetQuestionCount(ctx context.Context) (count int64, err error) {
 	questionList := make([]*entity.Question, 0)
 
-	count, err = qr.data.DB.In("question.status", []int{entity.QuestionStatusAvailable, entity.QuestionStatusclosed}).FindAndCount(&questionList)
+	count, err = qr.data.DB.In("question.status", []int{entity.QuestionStatusAvailable, entity.QuestionStatusClosed}).FindAndCount(&questionList)
 	if err != nil {
 		return count, errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
 	}
 	return
+}
+
+func (qr *questionRepo) GetQuestionIDsPage(ctx context.Context, page, pageSize int) (questionIDList []*schema.SiteMapQuestionInfo, err error) {
+	questionIDList = make([]*schema.SiteMapQuestionInfo, 0)
+	rows := make([]*entity.Question, 0)
+	if page > 0 {
+		page = page - 1
+	} else {
+		page = 0
+	}
+	if pageSize == 0 {
+		pageSize = constant.DefaultPageSize
+	}
+	offset := page * pageSize
+	session := qr.data.DB.Table("question")
+	session = session.In("question.status", []int{entity.QuestionStatusAvailable, entity.QuestionStatusClosed})
+	session = session.Limit(pageSize, offset)
+	session = session.OrderBy("question.created_at asc")
+	err = session.Select("id,title,post_update_time").Find(&rows)
+	if err != nil {
+		return questionIDList, err
+	}
+	for _, question := range rows {
+		item := &schema.SiteMapQuestionInfo{}
+		item.ID = question.ID
+		item.Title = htmltext.UrlTitle(question.Title)
+		item.UpdateTime = fmt.Sprintf("%v", question.PostUpdateTime.UTC())
+		questionIDList = append(questionIDList, item)
+	}
+	return questionIDList, nil
 }
 
 // GetQuestionPage get question page
@@ -210,7 +242,7 @@ func (qr *questionRepo) SearchList(ctx context.Context, search *schema.QuestionS
 		session = session.And("question.user_id = ?", search.UserID)
 	}
 
-	session = session.In("question.status", []int{entity.QuestionStatusAvailable, entity.QuestionStatusclosed})
+	session = session.In("question.status", []int{entity.QuestionStatusAvailable, entity.QuestionStatusClosed})
 	// if search.Status > 0 {
 	// 	session = session.And("question.status = ?", search.Status)
 	// }
@@ -230,7 +262,7 @@ func (qr *questionRepo) SearchList(ctx context.Context, search *schema.QuestionS
 		session = session.OrderBy("question.created_at desc")
 	}
 	session = session.Limit(search.PageSize, offset)
-	session = session.Select("question.id,question.user_id,question.title,question.original_text,question.parsed_text,question.status,question.view_count,question.unique_view_count,question.vote_count,question.answer_count,question.collection_count,question.follow_count,question.accepted_answer_id,question.last_answer_id,question.created_at,question.updated_at,question.post_update_time,question.revision_id")
+	session = session.Select("question.id,question.user_id,last_edit_user_id,question.title,question.original_text,question.parsed_text,question.status,question.view_count,question.unique_view_count,question.vote_count,question.answer_count,question.collection_count,question.follow_count,question.accepted_answer_id,question.last_answer_id,question.created_at,question.updated_at,question.post_update_time,question.revision_id")
 	count, err = session.FindAndCount(&rows)
 	if err != nil {
 		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
@@ -239,7 +271,7 @@ func (qr *questionRepo) SearchList(ctx context.Context, search *schema.QuestionS
 	return rows, count, nil
 }
 
-func (qr *questionRepo) CmsSearchList(ctx context.Context, search *schema.CmsQuestionSearch) ([]*entity.Question, int64, error) {
+func (qr *questionRepo) AdminSearchList(ctx context.Context, search *schema.AdminQuestionSearch) ([]*entity.Question, int64, error) {
 	var (
 		count   int64
 		err     error

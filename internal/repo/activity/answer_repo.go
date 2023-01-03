@@ -2,6 +2,7 @@ package activity
 
 import (
 	"context"
+	"time"
 
 	"github.com/answerdev/answer/internal/base/constant"
 	"github.com/answerdev/answer/internal/base/data"
@@ -26,15 +27,12 @@ type AnswerActivityRepo struct {
 }
 
 const (
-	acceptAction         = "accept"
-	acceptedAction       = "accepted"
-	acceptCancelAction   = "accept_cancel"
-	acceptedCancelAction = "accepted_cancel"
+	acceptAction   = "accept"
+	acceptedAction = "accepted"
 )
 
 var (
-	acceptActionList       = []string{acceptAction, acceptedAction}
-	acceptCancelActionList = []string{acceptCancelAction, acceptedCancelAction}
+	acceptActionList = []string{acceptAction, acceptedAction}
 )
 
 // NewAnswerActivityRepo new repository
@@ -96,8 +94,8 @@ func (ar *AnswerActivityRepo) DeleteQuestion(ctx context.Context, questionID str
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 
-			if _, e := session.Where("id = ?", act.ID).Cols("`cancelled`").
-				Update(&entity.Activity{Cancelled: entity.ActivityCancelled}); e != nil {
+			if _, e := session.Where("id = ?", act.ID).Cols("cancelled", "cancelled_at").
+				Update(&entity.Activity{Cancelled: entity.ActivityCancelled, CancelledAt: time.Now()}); e != nil {
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 		}
@@ -124,7 +122,7 @@ func (ar *AnswerActivityRepo) DeleteQuestion(ctx context.Context, questionID str
 
 // AcceptAnswer accept other answer
 func (ar *AnswerActivityRepo) AcceptAnswer(ctx context.Context,
-	answerObjID, questionUserID, answerUserID string, isSelf bool,
+	answerObjID, questionObjID, questionUserID, answerUserID string, isSelf bool,
 ) (err error) {
 	addActivityList := make([]*entity.Activity, 0)
 	for _, action := range acceptActionList {
@@ -134,17 +132,20 @@ func (ar *AnswerActivityRepo) AcceptAnswer(ctx context.Context,
 			return errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 		}
 		addActivity := &entity.Activity{
-			ObjectID:     answerObjID,
-			ActivityType: activityType,
-			Rank:         deltaRank,
-			HasRank:      hasRank,
+			ObjectID:         answerObjID,
+			OriginalObjectID: questionObjID,
+			ActivityType:     activityType,
+			Rank:             deltaRank,
+			HasRank:          hasRank,
 		}
 		if action == acceptAction {
 			addActivity.UserID = questionUserID
 			addActivity.TriggerUserID = converter.StringToInt64(answerUserID)
+			addActivity.OriginalObjectID = questionObjID // if activity is 'accept' means this question is accept the answer.
 		} else {
 			addActivity.UserID = answerUserID
 			addActivity.TriggerUserID = converter.StringToInt64(answerUserID)
+			addActivity.OriginalObjectID = answerObjID // if activity is 'accepted' means this answer was accepted.
 		}
 		if isSelf {
 			addActivity.Rank = 0
@@ -213,7 +214,7 @@ func (ar *AnswerActivityRepo) AcceptAnswer(ctx context.Context,
 		if act.UserID != questionUserID {
 			msg.TriggerUserID = questionUserID
 			msg.ObjectType = constant.AnswerObjectType
-			msg.NotificationAction = constant.AdoptAnswer
+			msg.NotificationAction = constant.AcceptAnswer
 			notice_queue.AddNotification(msg)
 		}
 	}
@@ -222,7 +223,7 @@ func (ar *AnswerActivityRepo) AcceptAnswer(ctx context.Context,
 
 // CancelAcceptAnswer accept other answer
 func (ar *AnswerActivityRepo) CancelAcceptAnswer(ctx context.Context,
-	answerObjID, questionUserID, answerUserID string,
+	answerObjID, questionObjID, questionUserID, answerUserID string,
 ) (err error) {
 	addActivityList := make([]*entity.Activity, 0)
 	for _, action := range acceptActionList {
@@ -239,8 +240,10 @@ func (ar *AnswerActivityRepo) CancelAcceptAnswer(ctx context.Context,
 		}
 		if action == acceptAction {
 			addActivity.UserID = questionUserID
+			addActivity.OriginalObjectID = questionObjID
 		} else {
 			addActivity.UserID = answerUserID
+			addActivity.OriginalObjectID = answerObjID
 		}
 		addActivityList = append(addActivityList, addActivity)
 	}
@@ -265,8 +268,8 @@ func (ar *AnswerActivityRepo) CancelAcceptAnswer(ctx context.Context,
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 
-			if _, e := session.Where("id = ?", existsActivity.ID).Cols("`cancelled`").
-				Update(&entity.Activity{Cancelled: entity.ActivityCancelled}); e != nil {
+			if _, e := session.Where("id = ?", existsActivity.ID).Cols("cancelled", "cancelled_at").
+				Update(&entity.Activity{Cancelled: entity.ActivityCancelled, CancelledAt: time.Now()}); e != nil {
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 		}
@@ -326,8 +329,8 @@ func (ar *AnswerActivityRepo) DeleteAnswer(ctx context.Context, answerID string)
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 
-			if _, e := session.Where("id = ?", act.ID).Cols("`cancelled`").
-				Update(&entity.Activity{Cancelled: entity.ActivityCancelled}); e != nil {
+			if _, e := session.Where("id = ?", act.ID).Cols("cancelled", "cancelled_at").
+				Update(&entity.Activity{Cancelled: entity.ActivityCancelled, CancelledAt: time.Now()}); e != nil {
 				return nil, errors.InternalServer(reason.DatabaseError).WithError(e).WithStack()
 			}
 		}

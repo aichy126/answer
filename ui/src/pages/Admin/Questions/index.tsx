@@ -1,7 +1,9 @@
 import { FC } from 'react';
-import { Button, Form, Table, Stack, Badge } from 'react-bootstrap';
+import { Button, Form, Table, Stack } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+
+import classNames from 'classnames';
 
 import {
   FormatTime,
@@ -15,13 +17,8 @@ import {
 import { ADMIN_LIST_STATUS } from '@/common/constants';
 import { useEditStatusModal, useReportModal } from '@/hooks';
 import * as Type from '@/common/interface';
-import {
-  useQuestionSearch,
-  changeQuestionStatus,
-  deleteQuestion,
-} from '@/services';
-
-import '../index.scss';
+import { useQuestionSearch, changeQuestionStatus } from '@/services';
+import { pathFactory } from '@/router/pathFactory';
 
 const questionFilterItems: Type.AdminContentsFilterBy[] = [
   'normal',
@@ -76,9 +73,7 @@ const Questions: FC = () => {
         confirmBtnVariant: 'danger',
         confirmText: t('delete', { keyPrefix: 'btns' }),
         onConfirm: () => {
-          deleteQuestion({
-            id,
-          }).then(() => {
+          changeQuestionStatus(id, 'deleted').then(() => {
             refreshList();
           });
         },
@@ -142,7 +137,7 @@ const Questions: FC = () => {
               <tr key={li.id}>
                 <td>
                   <a
-                    href={`/questions/${li.id}`}
+                    href={pathFactory.questionLanding(li.id, li.url_title)}
                     target="_blank"
                     className="text-break text-wrap"
                     rel="noreferrer">
@@ -173,9 +168,13 @@ const Questions: FC = () => {
                   </Stack>
                 </td>
                 <td>
-                  <Badge bg={ADMIN_LIST_STATUS[curFilter]?.variant}>
+                  <span
+                    className={classNames(
+                      'badge',
+                      ADMIN_LIST_STATUS[curFilter]?.variant,
+                    )}>
                     {t(ADMIN_LIST_STATUS[curFilter]?.name)}
-                  </Badge>
+                  </span>
                 </td>
                 {curFilter !== 'deleted' && (
                   <td>

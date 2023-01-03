@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/answerdev/answer/internal/base/constant"
 	"github.com/answerdev/answer/internal/base/reason"
 	"github.com/answerdev/answer/internal/service/activity_common"
+	"github.com/answerdev/answer/internal/service/activity_queue"
 	"github.com/answerdev/answer/internal/service/config"
 	"github.com/answerdev/answer/internal/service/meta"
+	"github.com/answerdev/answer/pkg/htmltext"
 	"github.com/segmentfault/pacman/errors"
 
 	"github.com/answerdev/answer/internal/entity"
@@ -37,8 +40,9 @@ type QuestionRepo interface {
 	UpdateAccepted(ctx context.Context, question *entity.Question) (err error)
 	UpdateLastAnswer(ctx context.Context, question *entity.Question) (err error)
 	FindByID(ctx context.Context, id []string) (questionList []*entity.Question, err error)
-	CmsSearchList(ctx context.Context, search *schema.CmsQuestionSearch) ([]*entity.Question, int64, error)
+	AdminSearchList(ctx context.Context, search *schema.AdminQuestionSearch) ([]*entity.Question, int64, error)
 	GetQuestionCount(ctx context.Context) (count int64, err error)
+	GetQuestionIDsPage(ctx context.Context, page, pageSize int) (questionIDList []*schema.SiteMapQuestionInfo, err error)
 }
 
 // QuestionCommon user service
@@ -113,6 +117,12 @@ func (qs *QuestionCommon) UpdataPostTime(ctx context.Context, questionID string)
 	questioninfo.PostUpdateTime = now
 	return qs.questionRepo.UpdateQuestion(ctx, questioninfo, []string{"post_update_time"})
 }
+func (qs *QuestionCommon) UpdataPostSetTime(ctx context.Context, questionID string, setTime time.Time) error {
+	questioninfo := &entity.Question{}
+	questioninfo.ID = questionID
+	questioninfo.PostUpdateTime = setTime
+	return qs.questionRepo.UpdateQuestion(ctx, questioninfo, []string{"post_update_time"})
+}
 
 func (qs *QuestionCommon) FindInfoByID(ctx context.Context, questionIDs []string, loginUserID string) (map[string]*schema.QuestionInfo, error) {
 	list := make(map[string]*schema.QuestionInfo)
@@ -182,14 +192,26 @@ func (qs *QuestionCommon) Info(ctx context.Context, questionID string, loginUser
 	}
 	showinfo.Tags = tagmap
 
-	userinfo, has, err := qs.userCommon.GetUserBasicInfoByID(ctx, dbinfo.UserID)
+	userIds := make([]string, 0)
+	userIds = append(userIds, dbinfo.UserID)
+	userIds = append(userIds, dbinfo.LastEditUserID)
+	userIds = append(userIds, showinfo.LastAnsweredUserID)
+	userInfoMap, err := qs.userCommon.BatchUserBasicInfoByID(ctx, userIds)
 	if err != nil {
 		return showinfo, err
 	}
-	if has {
-		showinfo.UserInfo = userinfo
-		showinfo.UpdateUserInfo = userinfo
-		showinfo.LastAnsweredUserInfo = userinfo
+
+	_, ok := userInfoMap[dbinfo.UserID]
+	if ok {
+		showinfo.UserInfo = userInfoMap[dbinfo.UserID]
+	}
+	_, ok = userInfoMap[dbinfo.LastEditUserID]
+	if ok {
+		showinfo.UpdateUserInfo = userInfoMap[dbinfo.LastEditUserID]
+	}
+	_, ok = userInfoMap[showinfo.LastAnsweredUserID]
+	if ok {
+		showinfo.LastAnsweredUserInfo = userInfoMap[showinfo.LastAnsweredUserID]
 	}
 
 	if loginUserID == "" {
@@ -214,7 +236,7 @@ func (qs *QuestionCommon) Info(ctx context.Context, questionID string, loginUser
 	if err != nil {
 		log.Error("CollectionFunc.SearchObjectCollected", err)
 	}
-	_, ok := CollectedMap[dbinfo.ID]
+	_, ok = CollectedMap[dbinfo.ID]
 	if ok {
 		showinfo.Collected = true
 	}
@@ -231,7 +253,9 @@ func (qs *QuestionCommon) ListFormat(ctx context.Context, questionList []*entity
 		item := qs.ShowListFormat(ctx, questionInfo)
 		list = append(list, item)
 		objectIds = append(objectIds, item.ID)
-		userIds = append(userIds, questionInfo.UserID)
+		userIds = append(userIds, item.UserID)
+		userIds = append(userIds, item.LastEditUserID)
+		userIds = append(userIds, item.LastAnsweredUserID)
 	}
 	tagsMap, err := qs.tagCommon.BatchGetObjectTag(ctx, objectIds)
 	if err != nil {
@@ -251,8 +275,14 @@ func (qs *QuestionCommon) ListFormat(ctx context.Context, questionList []*entity
 		_, ok = userInfoMap[item.UserID]
 		if ok {
 			item.UserInfo = userInfoMap[item.UserID]
-			item.UpdateUserInfo = userInfoMap[item.UserID]
-			item.LastAnsweredUserInfo = userInfoMap[item.UserID]
+		}
+		_, ok = userInfoMap[item.LastEditUserID]
+		if ok {
+			item.UpdateUserInfo = userInfoMap[item.LastEditUserID]
+		}
+		_, ok = userInfoMap[item.LastAnsweredUserID]
+		if ok {
+			item.LastAnsweredUserInfo = userInfoMap[item.LastAnsweredUserID]
 		}
 	}
 
@@ -308,7 +338,7 @@ func (qs *QuestionCommon) CloseQuestion(ctx context.Context, req *schema.CloseQu
 	if !has {
 		return nil
 	}
-	questionInfo.Status = entity.QuestionStatusclosed
+	questionInfo.Status = entity.QuestionStatusClosed
 	err = qs.questionRepo.UpdateQuestionStatus(ctx, questionInfo)
 	if err != nil {
 		return err
@@ -322,6 +352,13 @@ func (qs *QuestionCommon) CloseQuestion(ctx context.Context, req *schema.CloseQu
 	if err != nil {
 		return err
 	}
+
+	activity_queue.AddActivity(&schema.ActivityMsg{
+		UserID:           questionInfo.UserID,
+		ObjectID:         questionInfo.ID,
+		OriginalObjectID: questionInfo.ID,
+		ActivityTypeKey:  constant.ActQuestionClosed,
+	})
 	return nil
 }
 
@@ -358,6 +395,7 @@ func (qs *QuestionCommon) ShowFormat(ctx context.Context, data *entity.Question)
 	info := schema.QuestionInfo{}
 	info.ID = data.ID
 	info.Title = data.Title
+	info.UrlTitle = htmltext.UrlTitle(data.Title)
 	info.Content = data.OriginalText
 	info.HTML = data.ParsedText
 	info.ViewCount = data.ViewCount
@@ -371,9 +409,41 @@ func (qs *QuestionCommon) ShowFormat(ctx context.Context, data *entity.Question)
 	info.CreateTime = data.CreatedAt.Unix()
 	info.UpdateTime = data.UpdatedAt.Unix()
 	info.PostUpdateTime = data.PostUpdateTime.Unix()
+	if data.PostUpdateTime.Unix() < 1 {
+		info.PostUpdateTime = 0
+	}
 	info.QuestionUpdateTime = data.UpdatedAt.Unix()
+	if data.UpdatedAt.Unix() < 1 {
+		info.QuestionUpdateTime = 0
+	}
 	info.Status = data.Status
 	info.UserID = data.UserID
+	info.LastEditUserID = data.LastEditUserID
+	if data.LastAnswerID != "0" {
+		answerInfo, exist, err := qs.answerRepo.GetAnswer(ctx, data.LastAnswerID)
+		if err == nil && exist {
+			if answerInfo.LastEditUserID != "0" {
+				info.LastAnsweredUserID = answerInfo.LastEditUserID
+			} else {
+				info.LastAnsweredUserID = answerInfo.UserID
+			}
+		}
+
+	}
 	info.Tags = make([]*schema.TagResp, 0)
 	return &info
+}
+func (qs *QuestionCommon) ShowFormatWithTag(ctx context.Context, data *entity.QuestionWithTagsRevision) *schema.QuestionInfo {
+	info := qs.ShowFormat(ctx, &data.Question)
+	Tags := make([]*schema.TagResp, 0)
+	for _, tag := range data.Tags {
+		item := &schema.TagResp{}
+		item.SlugName = tag.SlugName
+		item.DisplayName = tag.DisplayName
+		item.Recommend = tag.Recommend
+		item.Reserved = tag.Reserved
+		Tags = append(Tags, item)
+	}
+	info.Tags = Tags
+	return info
 }

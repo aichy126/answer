@@ -1,24 +1,29 @@
 import { FC, memo } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider } from 'react-helmet-async';
 
 import { SWRConfig } from 'swr';
 
-import { siteInfoStore, toastStore } from '@/stores';
-import { Header, Footer, Toast } from '@/components';
+import { toastStore } from '@/stores';
+import {
+  Header,
+  Footer,
+  Toast,
+  Customize,
+  CustomizeTheme,
+  PageTags,
+} from '@/components';
 
 const Layout: FC = () => {
   const { msg: toastMsg, variant, clear: toastClear } = toastStore();
-  const { siteInfo } = siteInfoStore.getState();
   const closeToast = () => {
     toastClear();
   };
 
   return (
     <HelmetProvider>
-      <Helmet>
-        {siteInfo && <meta name="description" content={siteInfo.description} />}
-      </Helmet>
+      <PageTags />
+      <CustomizeTheme />
       <SWRConfig
         value={{
           revalidateOnFocus: false,
@@ -29,6 +34,7 @@ const Layout: FC = () => {
         </div>
         <Toast msg={toastMsg} variant={variant} onClose={closeToast} />
         <Footer />
+        <Customize />
       </SWRConfig>
     </HelmetProvider>
   );

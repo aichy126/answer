@@ -1,7 +1,7 @@
 import { RouteObject } from 'react-router-dom';
 
 import { guard } from '@/utils';
-import type { TGuardResult } from '@/utils/guard';
+import type { TGuardFunc } from '@/utils/guard';
 
 export interface RouteNode extends RouteObject {
   page: string;
@@ -13,14 +13,18 @@ export interface RouteNode extends RouteObject {
    * if guard returned the `TGuardResult` has `redirect` field,
    * then auto redirect route to the `redirect` target.
    */
-  guard?: () => Promise<TGuardResult>;
+  guard?: TGuardFunc;
 }
 
 const routes: RouteNode[] = [
   {
     path: '/',
     page: 'pages/Layout',
-    guard: async () => {
+    guard: () => {
+      const gr = guard.shouldLoginRequired();
+      if (!gr.ok) {
+        return gr;
+      }
       return guard.notForbidden();
     },
     children: [
@@ -31,28 +35,31 @@ const routes: RouteNode[] = [
       },
       {
         path: 'questions',
-        index: true,
         page: 'pages/Questions',
+      },
+      {
+        path: 'questions/ask',
+        page: 'pages/Questions/Ask',
+        guard: () => {
+          return guard.activated();
+        },
       },
       {
         path: 'questions/:qid',
         page: 'pages/Questions/Detail',
       },
       {
-        path: 'questions/:qid/:aid',
+        path: 'questions/:qid/:slugPermalink',
         page: 'pages/Questions/Detail',
       },
       {
-        path: 'questions/ask',
-        page: 'pages/Questions/Ask',
-        guard: async () => {
-          return guard.activated();
-        },
+        path: 'questions/:qid/:slugPermalink/:aid',
+        page: 'pages/Questions/Detail',
       },
       {
         path: 'posts/:qid/edit',
         page: 'pages/Questions/Ask',
-        guard: async () => {
+        guard: () => {
           return guard.activated();
         },
       },
@@ -80,11 +87,15 @@ const routes: RouteNode[] = [
       {
         path: 'tags/:tagId/edit',
         page: 'pages/Tags/Edit',
-        guard: async () => {
+        guard: () => {
           return guard.activated();
         },
       },
-      // users
+      // for users
+      {
+        path: 'users',
+        page: 'pages/Users',
+      },
       {
         path: 'users/:username',
         page: 'pages/Users/Personal',
@@ -96,7 +107,7 @@ const routes: RouteNode[] = [
       {
         path: 'users/settings',
         page: 'pages/Users/Settings',
-        guard: async () => {
+        guard: () => {
           return guard.logged();
         },
         children: [
@@ -129,7 +140,7 @@ const routes: RouteNode[] = [
       {
         path: 'users/login',
         page: 'pages/Users/Login',
-        guard: async () => {
+        guard: () => {
           const notLogged = guard.notLogged();
           if (notLogged.ok) {
             return notLogged;
@@ -140,74 +151,87 @@ const routes: RouteNode[] = [
       {
         path: 'users/register',
         page: 'pages/Users/Register',
-        guard: async () => {
+        guard: () => {
+          const allowNew = guard.allowNewRegistration();
+          if (!allowNew.ok) {
+            return allowNew;
+          }
           return guard.notLogged();
         },
       },
       {
         path: 'users/account-recovery',
         page: 'pages/Users/AccountForgot',
-        guard: async () => {
-          return guard.activated();
+        guard: () => {
+          return guard.notLogged();
         },
       },
       {
         path: 'users/change-email',
         page: 'pages/Users/ChangeEmail',
-        guard: async () => {
-          return guard.notActivated();
-        },
       },
       {
         path: 'users/password-reset',
         page: 'pages/Users/PasswordReset',
-        guard: async () => {
-          return guard.activated();
-        },
       },
       {
         path: 'users/account-activation',
         page: 'pages/Users/ActiveEmail',
-        guard: async () => {
-          const notActivated = guard.notActivated();
-          if (notActivated.ok) {
-            return notActivated;
-          }
-          return guard.notLogged();
-        },
       },
       {
         path: 'users/account-activation/success',
         page: 'pages/Users/ActivationResult',
-        guard: async () => {
+        guard: () => {
           return guard.activated();
         },
       },
       {
         path: '/users/account-activation/failed',
         page: 'pages/Users/ActivationResult',
-        guard: async () => {
+        guard: () => {
           return guard.notActivated();
         },
       },
       {
         path: '/users/confirm-new-email',
         page: 'pages/Users/ConfirmNewEmail',
-        //  TODO: guard this
       },
       {
         path: '/users/account-suspended',
         page: 'pages/Users/Suspended',
-        guard: async () => {
+        guard: () => {
           return guard.forbidden();
+        },
+      },
+      {
+        path: '/posts/:qid/timeline',
+        page: 'pages/Timeline',
+        guard: () => {
+          return guard.logged();
+        },
+      },
+      {
+        path: '/posts/:qid/:aid/timeline',
+        page: 'pages/Timeline',
+        guard: () => {
+          return guard.logged();
+        },
+      },
+      {
+        path: '/tags/:tid/timeline',
+        page: 'pages/Timeline',
+        guard: () => {
+          return guard.logged();
         },
       },
       // for admin
       {
         path: 'admin',
         page: 'pages/Admin',
-        guard: async () => {
+        loader: async () => {
           await guard.pullLoggedUser(true);
+        },
+        guard: () => {
           return guard.admin();
         },
         children: [
@@ -226,6 +250,14 @@ const routes: RouteNode[] = [
           {
             path: 'flags',
             page: 'pages/Admin/Flags',
+          },
+          {
+            path: 'themes',
+            page: 'pages/Admin/Themes',
+          },
+          {
+            path: 'css-html',
+            page: 'pages/Admin/CssAndHtml',
           },
           {
             path: 'general',
@@ -251,7 +283,32 @@ const routes: RouteNode[] = [
             path: 'smtp',
             page: 'pages/Admin/Smtp',
           },
+          {
+            path: 'branding',
+            page: 'pages/Admin/Branding',
+          },
+          {
+            path: 'legal',
+            page: 'pages/Admin/Legal',
+          },
+          {
+            path: 'write',
+            page: 'pages/Admin/Write',
+          },
+          {
+            path: 'seo',
+            page: 'pages/Admin/Seo',
+          },
+          {
+            path: 'login',
+            page: 'pages/Admin/Login',
+          },
         ],
+      },
+      // for review
+      {
+        path: 'review',
+        page: 'pages/Review',
       },
       {
         path: '*',
@@ -260,6 +317,25 @@ const routes: RouteNode[] = [
       {
         path: '50x',
         page: 'pages/50X',
+      },
+    ],
+  },
+  {
+    path: '/',
+    page: 'pages/Layout',
+    children: [
+      {
+        page: 'pages/Legal',
+        children: [
+          {
+            path: 'tos',
+            page: 'pages/Legal/Tos',
+          },
+          {
+            path: 'privacy',
+            page: 'pages/Legal/Privacy',
+          },
+        ],
       },
     ],
   },

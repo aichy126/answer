@@ -1,27 +1,34 @@
 import { FC, memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
+import { usePageTags } from '@/hooks';
 import { loggedUserInfoStore } from '@/stores';
-import { getQueryString } from '@/utils';
 import { activateAccount } from '@/services';
-import { PageTitle } from '@/components';
 
 const Index: FC = () => {
   const { t } = useTranslation('translation', { keyPrefix: 'page_title' });
+  const [searchParams] = useSearchParams();
   const updateUser = loggedUserInfoStore((state) => state.update);
+  const navigate = useNavigate();
   useEffect(() => {
-    const code = getQueryString('code');
+    const code = searchParams.get('code');
 
     if (code) {
       activateAccount(encodeURIComponent(code)).then((res) => {
         updateUser(res);
         setTimeout(() => {
-          window.location.replace('/users/account-activation/success');
+          navigate('/users/account-activation/success', { replace: true });
         }, 0);
       });
+    } else {
+      navigate('/', { replace: true });
     }
   }, []);
-  return <PageTitle title={t('account_activation')} />;
+  usePageTags({
+    title: t('account_activation'),
+  });
+  return null;
 };
 
 export default memo(Index);

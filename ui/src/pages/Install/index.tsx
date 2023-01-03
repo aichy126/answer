@@ -1,17 +1,16 @@
-/* eslint-disable prettier/prettier */
 import { FC, useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Alert } from 'react-bootstrap';
 import { useTranslation, Trans } from 'react-i18next';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 import type { FormDataType } from '@/common/interface';
-import { PageTitle } from '@/components';
 import {
   dbCheck,
   installInit,
   installBaseInfo,
   checkConfigFileExists,
 } from '@/services';
-import { Storage } from '@/utils';
+import { Storage, handleFormError } from '@/utils';
 import { CURRENT_LANG_STORAGE_KEY } from '@/common/constants';
 
 import {
@@ -103,7 +102,6 @@ const Index: FC = () => {
   });
 
   const handleChange = (params: FormDataType) => {
-    // console.log(params);
     setErrorData({
       msg: '',
     });
@@ -175,10 +173,9 @@ const Index: FC = () => {
         handleNext();
       })
       .catch((err) => {
-        if (err.isError && err.key) {
-          formData[err.key].isInvalid = true;
-          formData[err.key].errorMsg = err.value;
-          setFormData({ ...formData });
+        if (err.isError) {
+          const data = handleFormError(err, formData);
+          setFormData({ ...data });
         } else {
           handleErr(err);
         }
@@ -226,7 +223,7 @@ const Index: FC = () => {
         });
         if (res && res.config_file_exist) {
           if (res.db_connection_success) {
-            setStep(6)
+            setStep(6);
           } else {
             setStep(7);
           }
@@ -246,80 +243,96 @@ const Index: FC = () => {
   }
 
   return (
-    <div className="page-wrap2 py-5">
-      <PageTitle title={t('install', { keyPrefix: 'page_title' })} />
-      <Container className='py-3'>
-        <Row className="justify-content-center">
-          <Col lg={6}>
-            <h2 className="mb-4 text-center">{t('title')}</h2>
-            <Card>
-              <Card.Body>
-                {errorData?.msg && (
-                  <Alert variant="danger">{errorData?.msg}</Alert>
-                )}
+    <HelmetProvider>
+      <Helmet>
+        <title>{t('install', { keyPrefix: 'page_title' })}</title>
+      </Helmet>
+      <div className="bg-f5 py-5 flex-grow-1">
+        <Container className="py-3">
+          <Row className="justify-content-center">
+            <Col lg={6}>
+              <h2 className="mb-4 text-center">{t('title')}</h2>
+              <Card>
+                <Card.Body>
+                  {errorData?.msg && (
+                    <Alert variant="danger">{errorData?.msg}</Alert>
+                  )}
 
-                <FirstStep
-                  visible={step === 1}
-                  data={formData.lang}
-                  changeCallback={handleChange}
-                  nextCallback={handleStep}
-                />
+                  <FirstStep
+                    visible={step === 1}
+                    data={formData.lang}
+                    changeCallback={handleChange}
+                    nextCallback={handleStep}
+                  />
 
-                <SecondStep
-                  visible={step === 2}
-                  data={formData}
-                  changeCallback={handleChange}
-                  nextCallback={handleStep}
-                />
+                  <SecondStep
+                    visible={step === 2}
+                    data={formData}
+                    changeCallback={handleChange}
+                    nextCallback={handleStep}
+                  />
 
-                <ThirdStep
-                  visible={step === 3}
-                  nextCallback={handleStep}
-                  errorMsg={errorData}
-                />
+                  <ThirdStep
+                    visible={step === 3}
+                    nextCallback={handleStep}
+                    errorMsg={errorData}
+                  />
 
-                <FourthStep
-                  visible={step === 4}
-                  data={formData}
-                  changeCallback={handleChange}
-                  nextCallback={handleStep}
-                />
+                  <FourthStep
+                    visible={step === 4}
+                    data={formData}
+                    changeCallback={handleChange}
+                    nextCallback={handleStep}
+                  />
 
-                <Fifth visible={step === 5} siteUrl={formData.site_url.value} />
-                {step === 6 && (
-                  <div>
-                    <h5>{t('warn_title')}</h5>
-                    <p>
-                      <Trans i18nKey="install.warn_description" components={{ 1: <code />}} />
-                      {' '}
-                      <Trans i18nKey="install.install_now">
-                        You may try <a href="###" onClick={e => handleInstallNow(e)}>installing now</a>.
-                      </Trans>
-                    </p>
-                  </div>
-                )}
+                  <Fifth
+                    visible={step === 5}
+                    siteUrl={formData.site_url.value}
+                  />
+                  {step === 6 && (
+                    <div>
+                      <h5>{t('warn_title')}</h5>
+                      <p>
+                        <Trans
+                          i18nKey="install.warn_description"
+                          components={{ 1: <code /> }}
+                        />{' '}
+                        <Trans i18nKey="install.install_now">
+                          You may try{' '}
+                          <a href="###" onClick={(e) => handleInstallNow(e)}>
+                            installing now
+                          </a>
+                          .
+                        </Trans>
+                      </p>
+                    </div>
+                  )}
 
-                {step === 7 && (
-                  <div>
-                    <h5>{t('db_failed')}</h5>
-                    <p>
-                      <Trans i18nKey="install.db_failed_description" components={{ 1: <code />}} />
-                    </p>
-                  </div>
-                )}
+                  {step === 7 && (
+                    <div>
+                      <h5>{t('db_failed')}</h5>
+                      <p>
+                        <Trans
+                          i18nKey="install.db_failed_description"
+                          components={{ 1: <code /> }}
+                        />
+                      </p>
+                    </div>
+                  )}
 
-                {step === 8  && (
-                  <div>
-                    <h5>{t('installed')}</h5>
-                    <p>{t('installed_description')}</p>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+                  {step === 8 && (
+                    <div>
+                      <h5>{t('installed')}</h5>
+                      <p>{t('installed_description')}</p>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    </HelmetProvider>
   );
 };
 

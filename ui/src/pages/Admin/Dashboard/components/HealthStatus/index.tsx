@@ -1,9 +1,11 @@
 import { FC } from 'react';
-import { Card, Row, Col, Badge } from 'react-bootstrap';
+import { Card, Row, Col } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import type * as Type from '@/common/interface';
+
+const { gt, gte } = require('semver');
 
 interface IProps {
   data: Type.AdminDashboard['info'];
@@ -12,7 +14,12 @@ interface IProps {
 const HealthStatus: FC<IProps> = ({ data }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'admin.dashboard' });
   const { version, remote_version } = data.version_info || {};
-  const isLatest = version === remote_version;
+  let isLatest = false;
+  let hasNewerVersion = false;
+  if (version && remote_version) {
+    isLatest = gte(version, remote_version);
+    hasNewerVersion = gt(remote_version, version);
+  }
   return (
     <Card className="mb-4">
       <Card.Body>
@@ -22,19 +29,31 @@ const HealthStatus: FC<IProps> = ({ data }) => {
             <span className="text-secondary me-1">{t('version')}</span>
             <strong>{version}</strong>
             {isLatest && (
-              <Badge pill bg="success" className="ms-1">
+              <a
+                className="ms-1 badge rounded-pill text-bg-success"
+                target="_blank"
+                href="https://github.com/answerdev/answer/releases"
+                rel="noreferrer">
                 {t('latest')}
-              </Badge>
+              </a>
             )}
-            {!isLatest && remote_version && (
-              <Badge pill bg="warning" text="dark" className="ms-1">
+            {!isLatest && hasNewerVersion && (
+              <a
+                className="ms-1 badge rounded-pill text-bg-warning"
+                target="_blank"
+                href="https://github.com/answerdev/answer/releases"
+                rel="noreferrer">
                 {t('update_to')} {remote_version}
-              </Badge>
+              </a>
             )}
             {!isLatest && !remote_version && (
-              <Badge pill bg="danger" className="ms-1">
+              <a
+                className="ms-1 badge rounded-pill text-bg-danger"
+                target="_blank"
+                href="https://github.com/answerdev/answer/releases"
+                rel="noreferrer">
                 {t('check_failed')}
-              </Badge>
+              </a>
             )}
           </Col>
           <Col xs={6} className="mb-1">

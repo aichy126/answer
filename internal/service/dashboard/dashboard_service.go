@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -76,17 +76,16 @@ func (ds *DashboardService) StatisticalByCache(ctx context.Context) (*schema.Das
 	if err != nil {
 		info, statisticalErr := ds.Statistical(ctx)
 		if statisticalErr != nil {
-			return dashboardInfo, err
+			return nil, statisticalErr
 		}
-		setCacheErr := ds.SetCache(ctx, info)
-		if setCacheErr != nil {
-			log.Error("ds.SetCache", setCacheErr)
+		if setCacheErr := ds.SetCache(ctx, info); setCacheErr != nil {
+			log.Errorf("set dashboard statistical failed: %s", setCacheErr)
 		}
-		return info, err
+		return info, nil
 	}
-	err = json.Unmarshal([]byte(infoStr), dashboardInfo)
-	if err != nil {
-		return dashboardInfo, err
+	if err = json.Unmarshal([]byte(infoStr), dashboardInfo); err != nil {
+		log.Errorf("parsing dashboard information failed: %s", err)
+		return nil, errors.InternalServer(reason.UnknownError)
 	}
 	startTime := time.Now().Unix() - schema.AppStartTime.Unix()
 	dashboardInfo.AppStartTime = fmt.Sprintf("%d", startTime)
@@ -209,7 +208,7 @@ func (ds *DashboardService) RemoteVersion(ctx context.Context) string {
 	}
 	defer resp.Body.Close()
 
-	respByte, err := ioutil.ReadAll(resp.Body)
+	respByte, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("http.Client error", err)
 		return ""

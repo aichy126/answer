@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/answerdev/answer/internal/schema"
+	"github.com/answerdev/answer/internal/service/siteinfo_common"
 
 	"github.com/answerdev/answer/internal/base/handler"
 	"github.com/answerdev/answer/internal/base/reason"
@@ -18,13 +19,17 @@ var ctxUUIDKey = "ctxUuidKey"
 
 // AuthUserMiddleware auth user middleware
 type AuthUserMiddleware struct {
-	authService *auth.AuthService
+	authService           *auth.AuthService
+	siteInfoCommonService *siteinfo_common.SiteInfoCommonService
 }
 
 // NewAuthUserMiddleware new auth user middleware
-func NewAuthUserMiddleware(authService *auth.AuthService) *AuthUserMiddleware {
+func NewAuthUserMiddleware(
+	authService *auth.AuthService,
+	siteInfoCommonService *siteinfo_common.SiteInfoCommonService) *AuthUserMiddleware {
 	return &AuthUserMiddleware{
-		authService: authService,
+		authService:           authService,
+		siteInfoCommonService: siteInfoCommonService,
 	}
 }
 
@@ -43,6 +48,29 @@ func (am *AuthUserMiddleware) Auth() gin.HandlerFunc {
 		}
 		if userInfo != nil {
 			ctx.Set(ctxUUIDKey, userInfo)
+		}
+		ctx.Next()
+	}
+}
+
+// EjectUserBySiteInfo if admin config the site can access by nologin user, eject user.
+func (am *AuthUserMiddleware) EjectUserBySiteInfo() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		mustLogin := false
+		siteInfo, _ := am.siteInfoCommonService.GetSiteLogin(ctx)
+		if siteInfo != nil {
+			mustLogin = siteInfo.LoginRequired
+		}
+		if !mustLogin {
+			ctx.Next()
+			return
+		}
+
+		_, isLogin := ctx.Get(ctxUUIDKey)
+		if !isLogin {
+			handler.HandleResponse(ctx, errors.Unauthorized(reason.UnauthorizedError), nil)
+			ctx.Abort()
+			return
 		}
 		ctx.Next()
 	}
@@ -85,7 +113,7 @@ func (am *AuthUserMiddleware) MustAuth() gin.HandlerFunc {
 	}
 }
 
-func (am *AuthUserMiddleware) CmsAuth() gin.HandlerFunc {
+func (am *AuthUserMiddleware) AdminAuth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ExtractToken(ctx)
 		if len(token) == 0 {
@@ -93,7 +121,7 @@ func (am *AuthUserMiddleware) CmsAuth() gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
-		userInfo, err := am.authService.GetCmsUserCacheInfo(ctx, token)
+		userInfo, err := am.authService.GetAdminUserCacheInfo(ctx, token)
 		if err != nil {
 			handler.HandleResponse(ctx, errors.Unauthorized(reason.UnauthorizedError), nil)
 			ctx.Abort()
@@ -113,15 +141,20 @@ func (am *AuthUserMiddleware) CmsAuth() gin.HandlerFunc {
 
 // GetLoginUserIDFromContext get user id from context
 func GetLoginUserIDFromContext(ctx *gin.Context) (userID string) {
-	userInfo, exist := ctx.Get(ctxUUIDKey)
-	if !exist {
+	userInfo := GetUserInfoFromContext(ctx)
+	if userInfo == nil {
 		return ""
 	}
-	u, ok := userInfo.(*entity.UserCacheInfo)
-	if !ok {
-		return ""
+	return userInfo.UserID
+}
+
+// GetIsAdminFromContext get user is admin from context
+func GetIsAdminFromContext(ctx *gin.Context) (isAdmin bool) {
+	userInfo := GetUserInfoFromContext(ctx)
+	if userInfo == nil {
+		return false
 	}
-	return u.UserID
+	return userInfo.IsAdmin
 }
 
 // GetUserInfoFromContext get user info from context

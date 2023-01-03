@@ -1,6 +1,6 @@
 .PHONY: build clean ui
 
-VERSION=0.3.0
+VERSION=1.0.1
 BIN=answer
 DIR_SRC=./cmd/answer
 DOCKER_CMD=docker
@@ -22,15 +22,15 @@ universal:
 
 generate:
 	go get github.com/google/wire/cmd/wire@latest
+	go install github.com/golang/mock/mockgen@v1.6.0
 	go generate ./...
 	go mod tidy
 
 test:
-	@$(GO) test ./...
+	@$(GO) test ./internal/repo/repo_test
 
 # clean all build result
 clean:
-
 	@$(GO) clean ./...
 	@rm -f $(BIN)
 

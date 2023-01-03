@@ -11,6 +11,7 @@ import type {
 import { loggedUserInfoStore } from '@/stores';
 import { changeEmail, checkImgCode } from '@/services';
 import { PicAuthCodeModal } from '@/components/Modal';
+import { handleFormError } from '@/utils';
 
 const Index: FC = () => {
   const { t } = useTranslation('translation', { keyPrefix: 'change_email' });
@@ -75,7 +76,6 @@ const Index: FC = () => {
       params.captcha_code = formData.captcha_code.value;
       params.captcha_id = imgCode.captcha_id;
     }
-
     changeEmail(params)
       .then(() => {
         userInfo.e_mail = formData.e_mail.value;
@@ -84,14 +84,13 @@ const Index: FC = () => {
         setModalState(false);
       })
       .catch((err) => {
-        if (err.isError && err.key) {
-          formData[err.key].isInvalid = true;
-          formData[err.key].errorMsg = err.value;
-          if (err.key.indexOf('captcha') < 0) {
+        if (err.isError) {
+          const data = handleFormError(err, formData);
+          if (!err.list.find((v) => v.error_field.indexOf('captcha') >= 0)) {
             setModalState(false);
           }
+          setFormData({ ...data });
         }
-        setFormData({ ...formData });
       })
       .finally(() => {
         getImgCode();
@@ -101,7 +100,6 @@ const Index: FC = () => {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     event.stopPropagation();
-
     if (!checkValidated()) {
       return;
     }

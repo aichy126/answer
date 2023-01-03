@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type * as Type from '@/common/interface';
 import { useToast } from '@/hooks';
 import { getLoggedUserInfo, changeEmail } from '@/services';
-
-const reg = /(?<=.{2}).+(?=@)/gi;
+import { handleFormError } from '@/utils';
 
 const Index: FC = () => {
   const { t } = useTranslation('translation', {
@@ -74,11 +73,10 @@ const Index: FC = () => {
         });
       })
       .catch((err) => {
-        if (err.isError && err.key) {
-          formData.e_mail.isInvalid = true;
-          formData.e_mail.errorMsg = err.value;
+        if (err.isError) {
+          const data = handleFormError(err, formData);
+          setFormData({ ...data });
         }
-        setFormData({ ...formData });
       });
   };
 
@@ -91,7 +89,10 @@ const Index: FC = () => {
             <Form.Control
               type="text"
               disabled
-              defaultValue={userInfo?.e_mail?.replace(reg, () => '*'.repeat(4))}
+              defaultValue={userInfo?.e_mail?.replace(
+                /(.{2})(.+)(@.+)/i,
+                '$1****$3',
+              )}
             />
           </Form.Group>
 
@@ -107,7 +108,7 @@ const Index: FC = () => {
             <Form.Control
               autoComplete="off"
               required
-              type="text"
+              type="email"
               placeholder=""
               value={formData.e_mail.value}
               isInvalid={formData.e_mail.isInvalid}

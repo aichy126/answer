@@ -6,6 +6,7 @@ import (
 
 	"github.com/answerdev/answer/internal/base/conf"
 	"github.com/answerdev/answer/internal/base/constant"
+	"github.com/answerdev/answer/internal/base/cron"
 	"github.com/answerdev/answer/internal/cli"
 	"github.com/answerdev/answer/internal/schema"
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ var (
 	// Name is the name of the project
 	Name = "answer"
 	// Version is the version of the project
-	Version = "development"
+	Version = "0.0.0"
 	// Revision is the git short commit revision number
 	Revision = ""
 	// Time is the build time of the project
@@ -35,16 +36,17 @@ var (
 // @in header
 // @name Authorization
 func main() {
+	log.SetLogger(zap.NewLogger(
+		log.ParseLevel(logLevel), zap.WithName("answer"), zap.WithPath(logPath), zap.WithCallerFullPath()))
 	Execute()
 }
 
 func runApp() {
-	log.SetLogger(zap.NewLogger(
-		log.ParseLevel(logLevel), zap.WithName("answer"), zap.WithPath(logPath), zap.WithCallerFullPath()))
 	c, err := conf.ReadConfig(cli.GetConfigFilePath())
 	if err != nil {
 		panic(err)
 	}
+	conf.GetPathIgnoreList()
 	app, cleanup, err := initApplication(
 		c.Debug, c.Server, c.Data.Database, c.Data.Cache, c.I18n, c.Swaggerui, c.ServiceConfig, log.GetLogger())
 	if err != nil {
@@ -59,7 +61,8 @@ func runApp() {
 	}
 }
 
-func newApplication(serverConf *conf.Server, server *gin.Engine) *pacman.Application {
+func newApplication(serverConf *conf.Server, server *gin.Engine, manager *cron.ScheduledTaskManager) *pacman.Application {
+	manager.Run()
 	return pacman.NewApp(
 		pacman.WithName(Name),
 		pacman.WithVersion(Version),
