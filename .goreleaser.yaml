@@ -96,9 +96,5 @@ changelog:
       - '^test:'
 
 
-# sudo apt-get install build-essential
-# sudo apt-get install gcc-multilib g++-multilib
-# sudo apt-get install gcc-mingw-w64
-# sudo apt-get -y install gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf
-# sudo apt-get install clang llvm
+
 # goreleaser release --snapshot --rm-dist
