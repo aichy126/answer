@@ -29,11 +29,11 @@ var (
 		"`question`.`id` as `question_id`",
 		"`title`",
 		"`parsed_text`",
-		"`question`.`created_at`",
+		"`question`.`created_at` as `created_at`",
 		"`user_id`",
 		"`vote_count`",
 		"`answer_count`",
-		"0 as `accepted`",
+		"CASE WHEN `accepted_answer_id` > 0 THEN 2 ELSE 0 END as `accepted`",
 		"`question`.`status` as `status`",
 		"`post_update_time`",
 	}
@@ -42,7 +42,7 @@ var (
 		"`question_id`",
 		"`question`.`title` as `title`",
 		"`answer`.`parsed_text` as `parsed_text`",
-		"`answer`.`created_at`",
+		"`answer`.`created_at` as `created_at`",
 		"`answer`.`user_id` as `user_id`",
 		"`answer`.`vote_count` as `vote_count`",
 		"0 as `answer_count`",
@@ -94,32 +94,29 @@ func (sr *searchRepo) SearchContents(ctx context.Context, words []string, tagIDs
 	ub = builder.MySQL().Select(afs...).From("`answer`").
 		LeftJoin("`question`", "`question`.id = `answer`.question_id")
 
-	b.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted})
+	b.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted}).
+		And(builder.Eq{"`question`.`show`": entity.QuestionShow})
 	ub.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted}).
-		And(builder.Lt{"`answer`.`status`": entity.AnswerStatusDeleted})
+		And(builder.Lt{"`answer`.`status`": entity.AnswerStatusDeleted}).
+		And(builder.Eq{"`question`.`show`": entity.QuestionShow})
 
-	argsQ = append(argsQ, entity.QuestionStatusDeleted)
-	argsA = append(argsA, entity.QuestionStatusDeleted, entity.AnswerStatusDeleted)
+	argsQ = append(argsQ, entity.QuestionStatusDeleted, entity.QuestionShow)
+	argsA = append(argsA, entity.QuestionStatusDeleted, entity.AnswerStatusDeleted, entity.QuestionShow)
 
-	for i, word := range words {
-		if i == 0 {
-			b.Where(builder.Like{"title", word}).
-				Or(builder.Like{"original_text", word})
-			argsQ = append(argsQ, "%"+word+"%")
-			argsQ = append(argsQ, "%"+word+"%")
+	likeConQ := builder.NewCond()
+	likeConA := builder.NewCond()
+	for _, word := range words {
+		likeConQ = likeConQ.Or(builder.Like{"title", word}).
+			Or(builder.Like{"original_text", word})
+		argsQ = append(argsQ, "%"+word+"%")
+		argsQ = append(argsQ, "%"+word+"%")
 
-			ub.Where(builder.Like{"`answer`.original_text", word})
-			argsA = append(argsA, "%"+word+"%")
-		} else {
-			b.Or(builder.Like{"title", word}).
-				Or(builder.Like{"original_text", word})
-			argsQ = append(argsQ, "%"+word+"%")
-			argsQ = append(argsQ, "%"+word+"%")
-
-			ub.Or(builder.Like{"`answer`.original_text", word})
-			argsA = append(argsA, "%"+word+"%")
-		}
+		likeConA = likeConA.Or(builder.Like{"`answer`.original_text", word})
+		argsA = append(argsA, "%"+word+"%")
 	}
+
+	b.Where(likeConQ)
+	ub.Where(likeConA)
 
 	// check tag
 	if len(tagIDs) > 0 {
@@ -228,20 +225,17 @@ func (sr *searchRepo) SearchQuestions(ctx context.Context, words []string, tagID
 
 	b := builder.MySQL().Select(qfs...).From("question")
 
-	b.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted})
-	args = append(args, entity.QuestionStatusDeleted)
+	b.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted}).And(builder.Eq{"`question`.`show`": entity.QuestionShow})
+	args = append(args, entity.QuestionStatusDeleted, entity.QuestionShow)
 
-	for i, word := range words {
-		if i == 0 {
-			b.Where(builder.Like{"title", word}).
-				Or(builder.Like{"original_text", word})
-			args = append(args, "%"+word+"%")
-			args = append(args, "%"+word+"%")
-		} else {
-			b.Or(builder.Like{"original_text", word})
-			args = append(args, "%"+word+"%")
-		}
+	likeConQ := builder.NewCond()
+	for _, word := range words {
+		likeConQ = likeConQ.Or(builder.Like{"title", word}).
+			Or(builder.Like{"original_text", word})
+		args = append(args, "%"+word+"%")
+		args = append(args, "%"+word+"%")
 	}
+	b.Where(likeConQ)
 
 	// check tag
 	if len(tagIDs) > 0 {
@@ -343,18 +337,16 @@ func (sr *searchRepo) SearchAnswers(ctx context.Context, words []string, tagIDs 
 		LeftJoin("`question`", "`question`.id = `answer`.question_id")
 
 	b.Where(builder.Lt{"`question`.`status`": entity.QuestionStatusDeleted}).
-		And(builder.Lt{"`answer`.`status`": entity.AnswerStatusDeleted})
-	args = append(args, entity.QuestionStatusDeleted, entity.AnswerStatusDeleted)
+		And(builder.Lt{"`answer`.`status`": entity.AnswerStatusDeleted}).And(builder.Eq{"`question`.`show`": entity.QuestionShow})
+	args = append(args, entity.QuestionStatusDeleted, entity.AnswerStatusDeleted, entity.QuestionShow)
 
-	for i, word := range words {
-		if i == 0 {
-			b.Where(builder.Like{"`answer`.original_text", word})
-			args = append(args, "%"+word+"%")
-		} else {
-			b.Or(builder.Like{"`answer`.original_text", word})
-			args = append(args, "%"+word+"%")
-		}
+	likeConA := builder.NewCond()
+	for _, word := range words {
+		likeConA = likeConA.Or(builder.Like{"`answer`.original_text", word})
+		args = append(args, "%"+word+"%")
 	}
+
+	b.Where(likeConA)
 
 	// check tag
 	if len(tagIDs) > 0 {
@@ -466,6 +458,7 @@ func (sr *searchRepo) parseResult(ctx context.Context, res []map[string][]byte) 
 			Where(builder.Eq{"tag_rel.object_id": r["question_id"]}).
 			And(builder.Eq{"tag_rel.status": entity.TagRelStatusAvailable}).
 			UseBool("recommend", "reserved").
+			OrderBy("tag.recommend DESC, tag.reserved DESC, tag.id DESC").
 			Find(&tagsEntity)
 
 		if err != nil {

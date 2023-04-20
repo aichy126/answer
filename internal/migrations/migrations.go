@@ -55,6 +55,8 @@ var migrations = []Migration{
 	NewMigration("add activity timeline", addActivityTimeline, false),
 	NewMigration("add user role", addRoleFeatures, false),
 	NewMigration("add theme and private mode", addThemeAndPrivateMode, true),
+	NewMigration("add new answer notification", addNewAnswerNotification, true),
+	NewMigration("add user pin hide features", addRolePinAndHideFeatures, true),
 }
 
 // GetCurrentDBVersion returns the current db version

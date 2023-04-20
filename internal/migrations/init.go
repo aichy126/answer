@@ -260,7 +260,7 @@ func initConfigTable(engine *xorm.Engine) error {
 		{ID: 30, Key: "answer.vote_up", Value: `0`},
 		{ID: 31, Key: "answer.vote_up_cancel", Value: `0`},
 		{ID: 32, Key: "question.follow", Value: `0`},
-		{ID: 33, Key: "email.config", Value: `{"from_name":"","from_email":"","smtp_host":"","smtp_port":465,"smtp_password":"","smtp_username":"","smtp_authentication":true,"encryption":"","register_title":"[{{.SiteName}}] Confirm your new account","register_body":"Welcome to {{.SiteName}}<br><br>\n\nClick the following link to confirm and activate your new account:<br>\n<a href='{{.RegisterUrl}}' target='_blank'>{{.RegisterUrl}}</a><br><br>\n\nIf the above link is not clickable, try copying and pasting it into the address bar of your web browser.\n","pass_reset_title":"[{{.SiteName }}] Password reset","pass_reset_body":"Somebody asked to reset your password on [{{.SiteName}}].<br><br>\n\nIf it was not you, you can safely ignore this email.<br><br>\n\nClick the following link to choose a new password:<br>\n<a href='{{.PassResetUrl}}' target='_blank'>{{.PassResetUrl}}</a>\n","change_title":"[{{.SiteName}}] Confirm your new email address","change_body":"Confirm your new email address for {{.SiteName}}  by clicking on the following link:<br><br>\n\n<a href='{{.ChangeEmailUrl}}' target='_blank'>{{.ChangeEmailUrl}}</a><br><br>\n\nIf you did not request this change, please ignore this email.\n","test_title":"[{{.SiteName}}] Test Email","test_body":"This is a test email."}`},
+		{ID: 33, Key: "email.config", Value: `{"from_name":"","from_email":"","smtp_host":"","smtp_port":465,"smtp_password":"","smtp_username":"","smtp_authentication":true,"encryption":"","register_title":"[{{.SiteName}}] Confirm your new account","register_body":"Welcome to {{.SiteName}}<br><br>\n\nClick the following link to confirm and activate your new account:<br>\n<a href='{{.RegisterUrl}}' target='_blank'>{{.RegisterUrl}}</a><br><br>\n\nIf the above link is not clickable, try copying and pasting it into the address bar of your web browser.\n","pass_reset_title":"[{{.SiteName }}] Password reset","pass_reset_body":"Somebody asked to reset your password on [{{.SiteName}}].<br><br>\n\nIf it was not you, you can safely ignore this email.<br><br>\n\nClick the following link to choose a new password:<br>\n<a href='{{.PassResetUrl}}' target='_blank'>{{.PassResetUrl}}</a>\n","change_title":"[{{.SiteName}}] Confirm your new email address","change_body":"Confirm your new email address for {{.SiteName}}  by clicking on the following link:<br><br>\n\n<a href='{{.ChangeEmailUrl}}' target='_blank'>{{.ChangeEmailUrl}}</a><br><br>\n\nIf you did not request this change, please ignore this email.\n","test_title":"[{{.SiteName}}] Test Email","test_body":"This is a test email.","new_answer_title":"[{{.SiteName}}] {{.DisplayName}} answered your question","new_answer_body":"<strong><a href='{{.AnswerUrl}}'>{{.QuestionTitle}}</a></strong><br><br>\n\n<small>{{.DisplayName}}:</small><br>\n<blockquote>{{.AnswerSummary}}</blockquote><br>\n<a href='{{.AnswerUrl}}'>View it on {{.SiteName}}</a><br><br>\n\n<small>You are receiving this because you authored the thread. <a href='{{.UnsubscribeUrl}}'>Unsubscribe</a></small>","new_comment_title":"[{{.SiteName}}] {{.DisplayName}} commented on your post","new_comment_body":"<strong><a href='{{.CommentUrl}}'>{{.QuestionTitle}}</a></strong><br><br>\n\n<small>{{.DisplayName}}:</small><br>\n<blockquote>{{.CommentSummary}}</blockquote><br>\n<a href='{{.CommentUrl}}'>View it on {{.SiteName}}</a><br><br>\n\n<small>You are receiving this because you authored the thread. <a href='{{.UnsubscribeUrl}}'>Unsubscribe</a></small>"}`},
 		{ID: 35, Key: "tag.follow", Value: `0`},
 		{ID: 36, Key: "rank.question.add", Value: `1`},
 		{ID: 37, Key: "rank.question.edit", Value: `200`},
@@ -344,6 +344,11 @@ func initConfigTable(engine *xorm.Engine) error {
 		{ID: 115, Key: "rank.question.close", Value: `-1`},
 		{ID: 116, Key: "rank.question.reopen", Value: `-1`},
 		{ID: 117, Key: "rank.tag.use_reserved_tag", Value: `-1`},
+		{ID: 118, Key: "plugin.status", Value: `{}`},
+		{ID: 119, Key: "question.pin", Value: `-1`},
+		{ID: 120, Key: "question.unpin", Value: `-1`},
+		{ID: 121, Key: "question.show", Value: `-1`},
+		{ID: 122, Key: "question.hide", Value: `-1`},
 	}
 	_, err := engine.Insert(defaultConfigTable)
 	return err
@@ -394,6 +399,10 @@ func initRolePower(engine *xorm.Engine) (err error) {
 		{ID: 31, Name: "answer audit", PowerType: permission.AnswerAudit, Description: "answer audit"},
 		{ID: 32, Name: "question audit", PowerType: permission.QuestionAudit, Description: "question audit"},
 		{ID: 33, Name: "tag audit", PowerType: permission.TagAudit, Description: "tag audit"},
+		{ID: 34, Name: "question pin", PowerType: permission.QuestionPin, Description: "top the question"},
+		{ID: 35, Name: "question hide", PowerType: permission.QuestionHide, Description: "hide  the question"},
+		{ID: 36, Name: "question unpin", PowerType: permission.QuestionUnPin, Description: "untop the question"},
+		{ID: 37, Name: "question show", PowerType: permission.QuestionShow, Description: "show the question"},
 	}
 	_, err = engine.Insert(powers)
 	if err != nil {
@@ -435,6 +444,10 @@ func initRolePower(engine *xorm.Engine) (err error) {
 		{RoleID: 2, PowerType: permission.QuestionAudit},
 		{RoleID: 2, PowerType: permission.TagAudit},
 		{RoleID: 2, PowerType: permission.TagUseReservedTag},
+		{RoleID: 2, PowerType: permission.QuestionPin},
+		{RoleID: 2, PowerType: permission.QuestionHide},
+		{RoleID: 2, PowerType: permission.QuestionUnPin},
+		{RoleID: 2, PowerType: permission.QuestionShow},
 
 		{RoleID: 3, PowerType: permission.QuestionAdd},
 		{RoleID: 3, PowerType: permission.QuestionEdit},
@@ -469,6 +482,10 @@ func initRolePower(engine *xorm.Engine) (err error) {
 		{RoleID: 3, PowerType: permission.QuestionAudit},
 		{RoleID: 3, PowerType: permission.TagAudit},
 		{RoleID: 3, PowerType: permission.TagUseReservedTag},
+		{RoleID: 3, PowerType: permission.QuestionPin},
+		{RoleID: 3, PowerType: permission.QuestionHide},
+		{RoleID: 3, PowerType: permission.QuestionUnPin},
+		{RoleID: 3, PowerType: permission.QuestionShow},
 	}
 	_, err = engine.Insert(rolePowerRels)
 	if err != nil {
