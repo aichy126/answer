@@ -1,4 +1,4 @@
-name: Build DockerHub Image
+name: Manual Build DockerHub Image
 
 on:
   workflow_dispatch:
