@@ -31,7 +31,6 @@ jobs:
       with:
         images: answerdev/answer
         tags: |
-          type=raw,value=latest
           type=ref,enable=true,priority=600,prefix=,suffix=,event=branch
           type=semver,pattern={{version}}
 
